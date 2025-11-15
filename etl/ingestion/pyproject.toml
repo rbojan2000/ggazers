@@ -1,18 +1,16 @@
-[project]
+[tool.poetry]
 name = "ingestion"
 version = "0.1.0"
 description = ""
-authors = [
-    {name = "Bojan Radovic",email = "rbojan2000@gmail.com"}
-]
+authors = ["Bojan Radovic <rbojan2000@gmail.com>"]
 readme = "README.md"
-requires-python = ">=3.11"
-dependencies = [
-]
+packages = [{include = "*", from = "src"}]
 
-[tool.poetry]
-packages = [{include = "ingestion", from = "src"}]
+[tool.poetry.dependencies]
+python = "^3.11"
+click = "^8.3.0"
+requests = "^2.32.5"
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
+requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
