@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 
 
@@ -36,7 +37,10 @@ def configure_logging(level=logging.INFO):
 
 
 # Configure logging when the package is imported
-configure_logging()
+if os.getenv("DEBUG", "false").lower() == "true":
+    configure_logging(level=logging.DEBUG)
+else:
+    configure_logging(level=logging.INFO)
 
 # Export the configuration function for manual use
 __all__ = ["configure_logging"]

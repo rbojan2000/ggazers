@@ -15,11 +15,11 @@ class GHArchiveClient:
         self, start_date: date, end_date: date
     ) -> Generator[Tuple[bytes, date], None, None]:
 
-        logger.info(f"Fetching data from #{start_date} to #{end_date}")
+        logger.info(f"Fetching data from {start_date} to {end_date}")
         current_date = start_date
 
         while current_date <= end_date:
-            logger.info(f"Fetching data for date: #{current_date}")
+            logger.info(f"Fetching data for date: {current_date}")
             daily_data = self._fetch_for_date(current_date)
             yield daily_data, current_date
             current_date += timedelta(days=1)
@@ -27,7 +27,7 @@ class GHArchiveClient:
     def _fetch_for_date(self, date: date, parts_per_date: int = 2) -> bytes:
         all_data: bytes = b""
         for i in range(parts_per_date):
-            logger.info(f"Fetching part #{i} for date: #{date}")
+            logger.info(f"Fetching part #{i} for date: {date}")
             all_data += self._fetch_data(date, i)
 
         return all_data
@@ -40,4 +40,3 @@ class GHArchiveClient:
 
     def _format_date(self, date: date) -> str:
         return date.strftime("%Y-%m-%d")
-

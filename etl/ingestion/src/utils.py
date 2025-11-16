@@ -1,7 +1,8 @@
 import calendar
 import gzip
+import json
 from datetime import date, datetime
-from typing import Tuple
+from typing import Generator, List, Tuple
 
 
 def get_first_and_last_day_of_month(year: int, month: int) -> Tuple[date, date]:
@@ -11,14 +12,36 @@ def get_first_and_last_day_of_month(year: int, month: int) -> Tuple[date, date]:
     return first_day, last_day
 
 
-def decompress_gzip_data(compressed_data: bytes) -> bytes:
+def decompress_data(compressed_data: bytes) -> bytes:
     return gzip.decompress(compressed_data)
 
 
 def generate_file_name(date: datetime) -> str:
-    return f"github_events{date.strftime('%Y_%m_%d')}.jsonl"
+    return f"{date.strftime('%Y_%m_%d')}.jsonl"
 
 
-def save_data_to_file(data: bytes, filepath: str) -> None:
-    with open(filepath, "wb") as f:
-        f.write(data)
+def chunk_list(lst: List[str], chunk_size: int) -> Generator[List[str], None, None]:
+    """Split a list into chunks of specified size."""
+    for i in range(0, len(lst), chunk_size):
+        yield lst[i : i + chunk_size]
+
+
+def extract_repos_and_actors(decompressed_data: bytes) -> Tuple[List[str], List[str]]:
+    repos = set()
+    actors = set()
+
+    data_str = decompressed_data.decode("utf-8")
+
+    for line in data_str.strip().split("\n"):
+        if not line:
+            continue
+
+        event = json.loads(line)
+        repo = event["repo"]["name"]
+        actor = event["actor"]["login"]
+        if "/" in actor:
+            actor = actor.split("/")[0]
+        repos.add(repo)
+        actors.add(actor)
+
+    return list(repos), list(actors)
