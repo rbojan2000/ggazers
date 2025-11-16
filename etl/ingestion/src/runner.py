@@ -25,9 +25,7 @@ github_client = GithubClient()
 
 
 @click.command()
-@click.option(
-    "--start_date", help="The start date for the data dump in YYYY-MM-DD format."
-)
+@click.option("--start_date", help="The start date for the data dump in YYYY-MM-DD format.")
 @click.option("--end_date", help="The end date for the data dump in YYYY-MM-DD format.")
 @click.option("--chunk_size", default=20, help="GraphQL query chunk size.")
 def run(start_date: str, end_date: str, chunk_size: int = 20) -> None:
@@ -39,9 +37,7 @@ def run(start_date: str, end_date: str, chunk_size: int = 20) -> None:
         start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
         end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
 
-    for daily_data, current_date in gh_archive_client.get_events_dump(
-        start_date, end_date
-    ):
+    for daily_data, current_date in gh_archive_client.get_events_dump(start_date, end_date):
         decompressed_data = decompress_data(daily_data)
         repos, actors = extract_repos_and_actors(decompressed_data)
 

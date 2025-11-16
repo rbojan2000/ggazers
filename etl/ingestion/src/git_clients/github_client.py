@@ -19,9 +19,7 @@ class GithubClient:
         self.api_url = graphql_api_url
         self.headers = self._init_headers(content_type, accept, token)
 
-    def _init_headers(
-        self, content_type: str, accept: str, token: str
-    ) -> Dict[str, str]:
+    def _init_headers(self, content_type: str, accept: str, token: str) -> Dict[str, str]:
         headers = {
             "Authorization": f"token {token}",
             "Content-Type": content_type,
