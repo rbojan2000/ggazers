@@ -1,7 +1,8 @@
+import http
 import logging
 import os
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
@@ -12,24 +13,84 @@ class GithubClient:
     def __init__(
         self,
         graphql_api_url: str = "https://api.github.com/graphql",
+        http_rest_api_url: str = "https://api.github.com/",
         content_type: str = "application/json",
         accept: str = "application/vnd.github.v4+json",
-        token: str = os.getenv("GIT_TOKEN"),
+        primary_token: Optional[str] = os.getenv("GIT_TOKEN_1"),
+        secondary_token: Optional[str] = os.getenv("GIT_TOKEN_2"),
+        timeout: int = 60 * 10,
     ) -> None:
         self.api_url = graphql_api_url
-        self.headers = self._init_headers(content_type, accept, token)
+        self.content_type = content_type
+        self.accept = accept
+        self.http_rest_api_url = http_rest_api_url
+        self.primary_token = primary_token
+        self.secondary_token = secondary_token
+        self.timeout = timeout
 
-    def _init_headers(self, content_type: str, accept: str, token: str) -> Dict[str, str]:
+    def _headers(self, token: Optional[str]) -> Dict[str, str]:
         headers = {
-            "Authorization": f"token {token}",
-            "Content-Type": content_type,
-            "Accept": accept,
+            "Content-Type": self.content_type,
+            "Accept": self.accept,
         }
-
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
         return headers
 
-    def build_query(self, actors: List[str] = None, repos: List[str] = None) -> str:
-        logger.debug(f"actors: {actors}, repos: {repos}")
+    def _attempts(self) -> List[Tuple[str, Optional[str]]]:
+        attempts = [
+            ("primary token", self.primary_token),
+            ("secondary token", self.secondary_token),
+            ("no token", None),
+        ]
+        return attempts
+
+    def run_query(self, query: str) -> Optional[Dict[str, Any]]:
+        """
+        Execute query using multiple auth strategies (primary → secondary → no token).
+        Returns response data if available, otherwise {}.
+        """
+
+        for label, token in self._attempts():
+            logger.info(f"Trying query using {label}...")
+
+            try:
+                response = requests.post(
+                    url=self.api_url,
+                    json={"query": query},
+                    headers=self._headers(token),
+                    timeout=self.timeout,
+                )
+            except Exception as e:
+                logger.warning(f"Request failed using {label}: {e}")
+                continue
+
+            try:
+                body = response.json()
+            except ValueError:
+                logger.warning(f"Invalid JSON using {label}: {response.text}")
+                continue
+
+            if "err" in body:
+                logger.warning(f"API error using {label}: {body}")
+                continue
+
+            data = body.get("data")
+            if data:
+                logger.info(f"Query successful using {label}.")
+                return data
+
+            logger.warning(f"Query returned no data using {label}: {body}")
+
+        logger.warning("All attempts failed. Returning empty result.")
+        return None
+
+    def build_graphql_query(
+        self, actors: Optional[List[str]] = None, repos: Optional[List[str]] = None
+    ) -> Optional[str]:
+        if not actors and not repos:
+            logger.warning("No actors or repositories provided for query building.")
+            return None
 
         query = """
         {
@@ -38,7 +99,6 @@ class GithubClient:
             for _, actor in enumerate(actors):
                 query += f"""
                 {self._sanitize_field_name(actor)}: user(login: "{actor}") {{
-                    id
                     login
                     name
                     email
@@ -62,52 +122,84 @@ class GithubClient:
                     }}
                 }}
                 """
+
         if repos:
-            for _, repo in enumerate(repos):
+            for repo in repos:
                 owner, name = repo.split("/")
+                field = self._sanitize_field_name(repo)
                 query += f"""
-                {self._sanitize_field_name(repo)}: repository(owner: "{owner}", name: "{name}") {{
-                    name
+                {field}: repository(owner: "{owner}", name: "{name}") {{
+                    nameWithOwner
                     description
+                    isPrivate
+                    isArchived
+                    isFork
+                    isDisabled
+                    createdAt
+                    homepageUrl
+                    diskUsage
+                    visibility
+                    defaultBranchRef {{
+                        name
+                    }}
                     stargazerCount
                     forkCount
+                    watchers {{
+                        totalCount
+                    }}
+                    issues(states: OPEN) {{
+                        totalCount
+                    }}
+                    pullRequests(states: OPEN) {{
+                        totalCount
+                    }}
+                    primaryLanguage {{
+                        name
+                    }}
                 }}
                 """
+
         query += """
         }
         """
         return query
 
-    def run_query(self, query: str) -> Dict[str, Dict[str, Any]]:
-        response = requests.post(
-            url=self.api_url,
-            json={"query": query},
-            headers=self.headers,
-            stream=False,
-            timeout=60 * 5,
-        )
-        logger.debug(f"Response Status Code: {response.status_code}")
-        logger.debug(f"Response Content: {response.content}")
+    def send_http_request(self, endpoint: str, unit: str) -> Optional[Dict[str, Any]]:
+        for attempt, token in self._attempts():
+            logger.info(f"GET {self.http_rest_api_url} using {attempt}...")
+            try:
+                response = requests.get(
+                    url=f"{self.http_rest_api_url}/{endpoint}/{unit}",
+                    headers=self._headers(token),
+                    timeout=self.timeout,
+                )
 
-        result = response.json().get("data")
-        return result
+                if response.status_code == http.HTTPStatus.OK:
+                    return response.json()
+                elif response.status_code == http.HTTPStatus.NOT_FOUND:
+                    logger.warning(f"{attempt}, {endpoint}/{unit} not found.")
+                    return None
+
+                logger.warning(f"Failed with {attempt}: HTTP {response.status_code} → trying next")
+
+            except Exception as e:
+                logger.warning(f"GET request failed using {attempt}: {e}")
+
+        logger.warning("All attempts failed for GET request.")
+        return None
+
+    def hit_rest_api(self, endpoint: str, units: List[str]) -> Dict[str, Any]:
+        data: Dict[str, Any] = {}
+        for unit in units:
+            unit_data = self.send_http_request(endpoint, unit)
+            data[unit] = unit_data
+        return None if not data else data
 
     def _sanitize_field_name(self, name: str) -> str:
-        """Sanitize field name for GraphQL."""
-        if not name:
-            return "field"
-
-        # Replace all invalid characters with underscores
-        sanitized = re.sub(r"[^a-zA-Z0-9_]", "_", name)
-
-        # Ensure it starts with a letter or underscore
-        if sanitized and sanitized[0].isdigit():
-            sanitized = f"_{sanitized}"
-
-        # Remove consecutive underscores
+        sanitized = re.sub(r"[^A-Za-z0-9_]", "_", name)
         sanitized = re.sub(r"_+", "_", sanitized)
-
-        # Remove trailing underscores
-        sanitized = sanitized.strip("_")
-
-        return sanitized or "field"
+        if not sanitized:
+            return "field"
+        if sanitized[0].isdigit():
+            sanitized = f"_{sanitized}"
+        return sanitized

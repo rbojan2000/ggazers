@@ -16,8 +16,8 @@ def decompress_data(compressed_data: bytes) -> bytes:
     return gzip.decompress(compressed_data)
 
 
-def generate_file_name(date: datetime) -> str:
-    return f"{date.strftime('%Y_%m_%d')}.jsonl"
+def generate_file_name(date: datetime, part: int) -> str:
+    return f"{date.strftime('%Y_%m_%d')}_{part}.json"
 
 
 def chunk_list(lst: List[str], chunk_size: int) -> Generator[List[str], None, None]:

@@ -62,10 +62,11 @@ def test_decompress_valid_data():
 
 def test_generate_file_name():
     test_date = datetime(2023, 5, 15, 14, 30, 45)
+    part = 0
 
-    result = generate_file_name(test_date)
+    result = generate_file_name(test_date, part)
 
-    assert result == "2023_05_15.jsonl"
+    assert result == "2023_05_15_0.json"
 
 
 def test_chunk_list_exact_division():

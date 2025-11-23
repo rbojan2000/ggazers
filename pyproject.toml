@@ -11,6 +11,7 @@ black = "^25.11.0"
 isort = "^7.0.0"
 flake8 = "^7.3.0"
 pytest = "^9.0.1"
+requests = "^2.32.5"
 
 [tool.isort]
 profile = "black"

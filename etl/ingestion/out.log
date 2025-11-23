@@ -1,0 +1,18 @@
+nohup: ignoring input
+2025-11-23 14:49:15 - src.git_clients.gh_archive_client - INFO - Fetching data from 2025-11-01 to 2025-11-30
+2025-11-23 14:49:15 - src.git_clients.gh_archive_client - INFO - Fetching data for date: 2025-11-01
+2025-11-23 14:49:15 - src.git_clients.gh_archive_client - INFO - Fetching part #0 for date: 2025-11-01
+2025-11-23 14:49:25 - src.git_clients.gh_archive_client - INFO - Fetching part #1 for date: 2025-11-01
+2025-11-23 14:49:35 - src.git_clients.gh_archive_client - INFO - Fetching part #2 for date: 2025-11-01
+2025-11-23 14:49:44 - src.git_clients.gh_archive_client - INFO - Fetching part #3 for date: 2025-11-01
+2025-11-23 14:49:54 - src.git_clients.gh_archive_client - INFO - Fetching part #4 for date: 2025-11-01
+2025-11-23 14:50:02 - src.git_clients.gh_archive_client - INFO - Fetching part #5 for date: 2025-11-01
+2025-11-23 14:50:13 - src.git_clients.gh_archive_client - INFO - Fetching part #6 for date: 2025-11-01
+2025-11-23 14:50:29 - src.git_clients.gh_archive_client - INFO - Fetching part #7 for date: 2025-11-01
+2025-11-23 14:50:45 - src.git_clients.gh_archive_client - INFO - Fetching part #8 for date: 2025-11-01
+2025-11-23 14:50:57 - src.git_clients.gh_archive_client - INFO - Fetching part #9 for date: 2025-11-01
+2025-11-23 14:51:11 - src.git_clients.gh_archive_client - INFO - Fetching part #10 for date: 2025-11-01
+2025-11-23 14:51:21 - src.git_clients.gh_archive_client - INFO - Fetching part #11 for date: 2025-11-01
+2025-11-23 14:51:33 - src.git_clients.gh_archive_client - INFO - Fetching part #12 for date: 2025-11-01
+2025-11-23 14:51:44 - src.git_clients.gh_archive_client - INFO - Fetching part #13 for date: 2025-11-01
+2025-11-23 14:52:12 - src.common - INFO - Spilling bytes data to /home/bojanradovic/Desktop/ggazers/data/bronze/github_events/2025_11_01.jsonl

@@ -23,3 +23,14 @@ def save_json(data: Dict[str, Any], filepath: str, encoding: str = "utf-8") -> N
     else:
         with open(filepath, "w", encoding=encoding) as f:
             json.dump([data], f, ensure_ascii=False, indent=2)
+
+
+def spill_bytes(data: bytes, filepath: str) -> None:
+    logger.info(f"Spilling bytes data to {filepath}")
+    dirpath = os.path.dirname(filepath)
+    if dirpath and not os.path.exists(dirpath):
+        logger.info(f"Creating directory {dirpath}")
+        os.makedirs(dirpath)
+
+    with open(filepath, "wb") as f:
+        f.write(data)
