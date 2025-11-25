@@ -38,26 +38,30 @@ def test_attempts_order():
 
 @patch("requests.post")
 def test_run_query_success(mock_post):
-    mock_post.return_value = make_response(http.HTTPStatus.OK, {"data": {"ok": True}})
+    mock_post.return_value = make_response(
+        http.HTTPStatus.OK, {"data": {"octocat": {"login": "octocat", "name": "The Octocat"}}}
+    )
 
     client = GithubClient(primary_token="TOKEN1")
     result = client.run_query("query { test }")
 
-    assert result == {"ok": True}
+    assert result[0] == {"login": "octocat", "name": "The Octocat"}
     assert mock_post.call_count == 1
 
 
 @patch("requests.post")
 def test_run_query_primary_fails_secondary_ok(mock_post):
     mock_post.side_effect = [
-        make_response(http.HTTPStatus.OK, {"err": "rate limit"}),  # primary token fails
-        make_response(http.HTTPStatus.OK, {"data": {"x": 123}}),  # secondary succeeds
+        make_response(http.HTTPStatus.OK, {"err": "rate limit"}),
+        make_response(
+            http.HTTPStatus.OK, {"data": {"octocat": {"login": "octocat", "name": "The Octocat"}}}
+        ),
     ]
 
     client = GithubClient(primary_token="A", secondary_token="B")
     result = client.run_query("query { test }")
 
-    assert result == {"x": 123}
+    assert result[0] == {"login": "octocat", "name": "The Octocat"}
     assert mock_post.call_count == 2
 
 
@@ -98,12 +102,12 @@ def test_build_graphql_query_none():
 
 @patch("requests.get")
 def test_send_http_request_ok(mock_get):
-    mock_get.return_value = make_response(http.HTTPStatus.OK, {"value": 42})
+    mock_get.return_value = make_response(http.HTTPStatus.OK, {"name": "The Octocat"})
 
     client = GithubClient()
     res = client.send_http_request("users", "octocat")
 
-    assert res == {"value": 42}
+    assert res == {"name": "The Octocat"}
 
 
 @patch("requests.get")
@@ -139,10 +143,7 @@ def test_hit_rest_api(mock_send):
     client = GithubClient()
     result = client.hit_rest_api("users", ["a", "b"])
 
-    assert result == {
-        "a": {"x": 1},
-        "b": None,
-    }
+    assert result == [{"x": 1}, None]
 
 
 @pytest.mark.parametrize(

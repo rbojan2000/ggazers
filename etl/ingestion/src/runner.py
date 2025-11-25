@@ -31,6 +31,7 @@ github_client = GithubClient()
 @click.option("--end_date", help="The end date for the data dump in YYYY-MM-DD format.")
 @click.option("--chunk_size", default=20, help="GraphQL query chunk size.")
 def run(start_date: str, end_date: str, chunk_size: int = 20) -> None:
+
     if not start_date or not end_date:
         start_date, end_date = get_first_and_last_day_of_month(
             year=datetime.now().year, month=datetime.now().month

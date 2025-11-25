@@ -13,7 +13,7 @@ class GithubClient:
     def __init__(
         self,
         graphql_api_url: str = "https://api.github.com/graphql",
-        http_rest_api_url: str = "https://api.github.com/",
+        http_rest_api_url: str = "https://api.github.com",
         content_type: str = "application/json",
         accept: str = "application/vnd.github.v4+json",
         primary_token: Optional[str] = os.getenv("GIT_TOKEN_1"),
@@ -45,7 +45,7 @@ class GithubClient:
         ]
         return attempts
 
-    def run_query(self, query: str) -> Optional[Dict[str, Any]]:
+    def run_query(self, query: str) -> Optional[List[Any]]:
         """
         Execute query using multiple auth strategies (primary → secondary → no token).
         Returns response data if available, otherwise {}.
@@ -77,6 +77,7 @@ class GithubClient:
 
             data = body.get("data")
             if data:
+                data = list(data.values())
                 logger.info(f"Query successful using {label}.")
                 return data
 
@@ -188,11 +189,11 @@ class GithubClient:
         logger.warning("All attempts failed for GET request.")
         return None
 
-    def hit_rest_api(self, endpoint: str, units: List[str]) -> Dict[str, Any]:
-        data: Dict[str, Any] = {}
+    def hit_rest_api(self, endpoint: str, units: List[str]) -> List[Any]:
+        data: List[Any] = []
         for unit in units:
             unit_data = self.send_http_request(endpoint, unit)
-            data[unit] = unit_data
+            data.append(unit_data)
         return None if not data else data
 
     def _sanitize_field_name(self, name: str) -> str:
