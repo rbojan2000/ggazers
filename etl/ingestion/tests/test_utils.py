@@ -24,40 +24,40 @@ def test_february_regular_year():
 
 
 def test_decompress_valid_data():
-    original_data = b'{ \
-        "id":"4397712120", \
-        "type":"WatchEvent", \
-        "actor":{ \
-            "id":89842553, \
-            "login":"arsenydubrovin", \
-            "display_login":"arsenydubrovin", \
-            "gravatar_id":"", \
-            "url":"https://api.github.com/users/arsenydubrovin", \
-            "avatar_url":"https://avatars.githubusercontent.com/u/89842553?" \
-        }, \
-        "repo":{ \
-            "id":197081291, \
-            "name":"iced-rs/iced", \
-            "url":"https://api.github.com/repos/iced-rs/iced"}, \
-            "payload": { \
-                "action":"started" \
-            }, \
-            "public":true, \
-            "created_at":"2025-11-01T00:00:00Z", \
-            "org":{ \
-                "id":54513237, \
-                "login":"iced-rs", \
-                "gravatar_id":"", \
-                "url":"https://api.github.com/orgs/iced-rs", \
-                "avatar_url":"https://avatars.githubusercontent.com/u/54513237?" \
-            } \
-        } \
-    }'
+    obj = {
+        "id": "4397712120",
+        "type": "WatchEvent",
+        "actor": {
+            "id": 89842553,
+            "login": "arsenydubrovin",
+            "display_login": "arsenydubrovin",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/arsenydubrovin",
+            "avatar_url": "https://avatars.githubusercontent.com/u/89842553?",
+        },
+        "repo": {
+            "id": 197081291,
+            "name": "iced-rs/iced",
+            "url": "https://api.github.com/repos/iced-rs/iced",
+        },
+        "payload": {"action": "started"},
+        "public": True,
+        "created_at": "2025-11-01T00:00:00Z",
+        "org": {
+            "id": 54513237,
+            "login": "iced-rs",
+            "gravatar_id": "",
+            "url": "https://api.github.com/orgs/iced-rs",
+            "avatar_url": "https://avatars.githubusercontent.com/u/54513237?",
+        },
+    }
 
-    compressed = gzip.compress(original_data)
+    json_lines = json.dumps(obj) + "\n"
+    compressed = gzip.compress(json_lines.encode("utf-8"))
+
     result = decompress_data(compressed)
 
-    assert result == original_data
+    assert result == [obj]
 
 
 def test_generate_file_name():
@@ -66,7 +66,7 @@ def test_generate_file_name():
 
     result = generate_file_name(test_date, part)
 
-    assert result == "2023_05_15_0.json"
+    assert result == "2023_05_15_0.jsonl"
 
 
 def test_chunk_list_exact_division():
@@ -114,10 +114,7 @@ def test_extract_single_event():
         },
     }
 
-    json_line = json.dumps(event_data)
-    compressed_data = json_line.encode("utf-8")
-
-    repos, actors = extract_repos_and_actors(compressed_data)
+    repos, actors = extract_repos_and_actors([event_data])
 
     assert repos == ["iced-rs/iced"]
     assert actors == ["arsenydubrovin"]
@@ -125,10 +122,8 @@ def test_extract_single_event():
 
 def test_extract_actor_with_slash():
     event_data = {"repo": {"name": "user/repo1"}, "actor": {"login": "actor/bot"}}
-    json_line = json.dumps(event_data)
-    compressed_data = json_line.encode("utf-8")
 
-    repos, actors = extract_repos_and_actors(compressed_data)
+    repos, actors = extract_repos_and_actors([event_data])
 
     assert repos == ["user/repo1"]
     assert actors == ["actor"]

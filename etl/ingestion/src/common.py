@@ -1,36 +1,17 @@
 import json
 import logging
 import os
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
 
-def save_json(data: Dict[str, Any], filepath: str, encoding: str = "utf-8") -> None:
-    logger.info(f"Saving data to {filepath}")
-    dirpath = os.path.dirname(filepath)
-    if dirpath and not os.path.exists(dirpath):
-        logger.info(f"Creating directory {dirpath}")
-        os.makedirs(dirpath)
-
-    if os.path.exists(filepath):
-        logger.info(f"Appending data to existing file {filepath}")
-        with open(filepath, "r", encoding=encoding) as f:
-            existing = json.load(f)
-        existing.append(data)
-        with open(filepath, "w", encoding=encoding) as f:
-            json.dump(existing, f, ensure_ascii=False, indent=2)
-    else:
-        with open(filepath, "w", encoding=encoding) as f:
-            json.dump([data], f, ensure_ascii=False, indent=2)
+def save_jsonl(data: List[Dict[str, Any]], filepath: str) -> None:
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    with open(filepath, "a", encoding="utf-8") as f:
+        for item in data:
+            f.write(json.dumps(item, ensure_ascii=False) + "\n")
 
 
-def spill_bytes(data: bytes, filepath: str) -> None:
-    logger.info(f"Spilling bytes data to {filepath}")
-    dirpath = os.path.dirname(filepath)
-    if dirpath and not os.path.exists(dirpath):
-        logger.info(f"Creating directory {dirpath}")
-        os.makedirs(dirpath)
-
-    with open(filepath, "wb") as f:
-        f.write(data)
+def add_column(list: List[Dict[str, Any]], column_name: str, value: Any) -> List[Dict[str, Any]]:
+    return [{**item, column_name: value} for item in list if item is not None]

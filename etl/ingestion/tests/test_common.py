@@ -1,36 +1,46 @@
 import json
-import os
-import tempfile
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List
 
-from src.common import save_json
-
-
-def test_save_json_new_file():
-    with tempfile.TemporaryDirectory() as temp_dir:
-        filepath = os.path.join(temp_dir, "test.json")
-        test_data = {"key": "value", "number": 42}
-
-        save_json(test_data, filepath)
-
-        assert os.path.exists(filepath)
-        with open(filepath, "r", encoding="utf-8") as f:
-            saved_data = json.load(f)
-        assert saved_data == [test_data]
+from common import add_column, save_jsonl  # adjust import path
 
 
-def test_save_json_append_to_existing():
-    with tempfile.TemporaryDirectory() as temp_dir:
-        filepath = os.path.join(temp_dir, "test.json")
-        existing_data = [{"existing": "data"}]
-        new_data = {"new": "data"}
+def test_add_column():
+    data: List[Dict[str, Any]] = [
+        {"login": "octocat", "name": "The Octocat"},
+        {"login": "rbojan2000", "name": "Bojan Radovic"},
+    ]
 
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(existing_data, f)
+    ts = int(datetime(2025, 11, 25).timestamp())
+    result = add_column(data, "ingested_at", ts)
 
-        save_json(new_data, filepath)
+    expected: List[Dict[str, Any]] = [
+        {"login": "octocat", "name": "The Octocat", "ingested_at": ts},
+        {"login": "rbojan2000", "name": "Bojan Radovic", "ingested_at": ts},
+    ]
 
-        with open(filepath, "r", encoding="utf-8") as f:
-            saved_data = json.load(f)
-        assert len(saved_data) == 2
-        assert saved_data[0] == {"existing": "data"}
-        assert saved_data[1] == {"new": "data"}
+    assert result == expected
+
+
+def test_save_jsonl(tmp_path: Path):
+    data: List[Dict[str, Any]] = [
+        {"login": "octocat", "name": "The Octocat"},
+        {"login": "rbojan2000", "name": "Bojan Radovic"},
+    ]
+
+    file_path = tmp_path / "test.jsonl"
+
+    save_jsonl(data, str(file_path))
+
+    save_jsonl([{"login": "alice", "name": "Alice"}], str(file_path))
+
+    with open(file_path, "r", encoding="utf-8") as f:
+        lines = f.read().splitlines()
+        loaded = [json.loads(line) for line in lines]
+
+    assert loaded == [
+        {"login": "octocat", "name": "The Octocat"},
+        {"login": "rbojan2000", "name": "Bojan Radovic"},
+        {"login": "alice", "name": "Alice"},
+    ]
