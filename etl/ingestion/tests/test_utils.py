@@ -5,6 +5,7 @@ from datetime import date, datetime
 from src.utils import (
     chunk_list,
     decompress_data,
+    extract_owner_from_repo_full_name,
     extract_repos_and_actors,
     generate_file_name,
     get_first_and_last_day_of_month,
@@ -115,15 +116,19 @@ def test_extract_single_event():
     }
 
     repos, actors = extract_repos_and_actors([event_data])
-
     assert repos == ["iced-rs/iced"]
-    assert actors == ["arsenydubrovin"]
+    assert sorted(actors) == sorted(["arsenydubrovin", "iced-rs"])
 
 
 def test_extract_actor_with_slash():
-    event_data = {"repo": {"name": "user/repo1"}, "actor": {"login": "actor/bot"}}
+    event_data = {"repo": {"name": "octocat/hello-world"}, "actor": {"login": "actor/bot"}}
 
     repos, actors = extract_repos_and_actors([event_data])
 
-    assert repos == ["user/repo1"]
-    assert actors == ["actor"]
+    assert repos == ["octocat/hello-world"]
+    assert sorted(actors) == sorted(["octocat", "actor"])
+
+
+def test_extract_owner_from_repo_full_name_with_slash():
+    result = extract_owner_from_repo_full_name("octocat/hello-world")
+    assert result == "octocat"

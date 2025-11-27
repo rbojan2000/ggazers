@@ -89,37 +89,63 @@ class GithubClient:
     def build_graphql_query(
         self, actors: Optional[List[str]] = None, repos: Optional[List[str]] = None
     ) -> Optional[str]:
+
         if not actors and not repos:
             logger.warning("No actors or repositories provided for query building.")
             return None
 
-        query = """
-        {
-        """
+        query = "{"
+
         if actors:
-            for _, actor in enumerate(actors):
+            for actor in actors:
+                field = self._sanitize_field_name(actor)
                 query += f"""
-                {self._sanitize_field_name(actor)}: user(login: "{actor}") {{
+                {field}: repositoryOwner(login: "{actor}") {{
+                    __typename
+                    id
                     login
-                    name
-                    email
-                    bio
                     avatarUrl
-                    url
-                    websiteUrl
-                    location
-                    company
-                    createdAt
-                    followers {{ totalCount }}
-                    following {{ totalCount }}
-                    repositories {{ totalCount }}
-                    gists {{ totalCount }}
-                    starredRepositories {{ totalCount }}
-                    watching {{ totalCount }}
-                    twitterUsername
-                    status {{
-                        message
-                        emoji
+
+                    ... on User {{
+                        name
+                        email
+                        bio
+                        company
+                        location
+                        websiteUrl
+                        createdAt
+                        twitterUsername
+                        followers {{
+                            totalCount
+                        }}
+                        following {{
+                            totalCount
+                        }}
+                        repositories {{
+                            totalCount
+                        }}
+                        gists {{
+                            totalCount
+                        }}
+                        status {{
+                            message
+                            emoji
+                        }}
+                    }}
+
+                    ... on Organization {{
+                        login
+                        id
+                        name
+                        avatarUrl
+                        websiteUrl
+                        location
+                        email
+                        twitterUsername
+                        createdAt
+                        repositories {{
+                            totalCount
+                        }}
                     }}
                 }}
                 """
@@ -130,19 +156,15 @@ class GithubClient:
                 field = self._sanitize_field_name(repo)
                 query += f"""
                 {field}: repository(owner: "{owner}", name: "{name}") {{
+                    id
                     nameWithOwner
                     description
+                    createdAt
                     isPrivate
                     isArchived
                     isFork
-                    isDisabled
-                    createdAt
-                    homepageUrl
                     diskUsage
                     visibility
-                    defaultBranchRef {{
-                        name
-                    }}
                     stargazerCount
                     forkCount
                     watchers {{
@@ -151,18 +173,20 @@ class GithubClient:
                     issues(states: OPEN) {{
                         totalCount
                     }}
-                    pullRequests(states: OPEN) {{
-                        totalCount
-                    }}
                     primaryLanguage {{
                         name
+                    }}
+                    repositoryTopics(first: 10) {{
+                        nodes {{
+                            topic {{
+                                name
+                            }}
+                        }}
                     }}
                 }}
                 """
 
-        query += """
-        }
-        """
+        query += "}"
         return query
 
     def send_http_request(self, endpoint: str, unit: str) -> Optional[Dict[str, Any]]:

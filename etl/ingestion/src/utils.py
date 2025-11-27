@@ -54,11 +54,16 @@ def extract_repos_and_actors(data: List[Dict[str, Any]]) -> Tuple[List[str], Lis
 
         if not repo_name or not actor_login:
             continue
+        repo_owner = extract_owner_from_repo_full_name(repo_name)
 
         if "/" in actor_login:
             actor_login = actor_login.split("/")[0]
 
         repos.add(repo_name)
         actors.add(actor_login)
-
+        actors.add(repo_owner)
     return list(repos), list(actors)
+
+
+def extract_owner_from_repo_full_name(repo_full_name: str) -> str:
+    return repo_full_name.split("/")[0] if "/" in repo_full_name else repo_full_name

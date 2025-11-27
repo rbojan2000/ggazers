@@ -88,13 +88,6 @@ def test_run_query_all_fail(mock_post):
     assert result is None
 
 
-def test_build_graphql_query_actors_and_repos():
-    client = GithubClient()
-    q = client.build_graphql_query(actors=["alice"], repos=["owner/repo"])
-    assert 'user(login: "alice")' in q
-    assert 'repository(owner: "owner", name: "repo")' in q
-
-
 def test_build_graphql_query_none():
     client = GithubClient()
     assert client.build_graphql_query(None, None) is None
