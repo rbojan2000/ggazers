@@ -16,7 +16,8 @@ flake:
 		etl/transformation/tests/
 
 tests:
-	pytest -v etl/ingestion/tests/
+	pytest -v etl/ingestion/tests/ && \
+	pytest -v etl/transformation/tests/
 
 check-etl-formatting:
 	black --check \

@@ -12,6 +12,7 @@ isort = "^7.0.0"
 flake8 = "^7.3.0"
 pytest = "^9.0.1"
 requests = "^2.32.5"
+pyspark = "3.5.2"
 
 [tool.isort]
 profile = "black"

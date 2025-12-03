@@ -1,13 +1,15 @@
+import logging
 from datetime import datetime
 
 import click
 from pyspark.sql import SparkSession
+from src.paths import DATA_PATH
+from src.processor import DataProcessor
+from src.utils import get_first_and_last_day_of_month
 
-from .paths import DATA_PATH
-from .processor import DataProcessor
-from .utils import get_first_and_last_day_of_month
+logger = logging.getLogger(__name__)
 
-spark = (
+spark_session: SparkSession = (
     SparkSession.builder.appName("transformation")
     .config("spark.sql.session.timeZone", "UTC")
     .config("spark.jars.packages", "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.6.0")
@@ -25,13 +27,14 @@ spark = (
 @click.option("--start_date", help="The start date for the data dump in YYYY-MM-DD format.")
 @click.option("--end_date", help="The end date for the data dump in YYYY-MM-DD format.")
 @click.option(
-    "--dataset_name",
+    "--dataset",
     required=True,
     type=click.Choice(["actors", "github_events", "repos"], case_sensitive=False),
     help="Specify the dataset to transform",
 )
-def run(start_date: str, end_date: str, dataset_name: str) -> None:
+def run(start_date: str, end_date: str, dataset: str) -> None:
 
+    logger.info(f"Starting transformation for dataset: {dataset}, from {start_date} to {end_date}.")
     if not start_date or not end_date:
         start_date, end_date = get_first_and_last_day_of_month(
             year=datetime.now().year, month=datetime.now().month
@@ -40,15 +43,18 @@ def run(start_date: str, end_date: str, dataset_name: str) -> None:
         start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
         end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
 
-    match dataset_name.lower():
+    match dataset.lower():
         case "actors":
-            DataProcessor.transform_actors(spark, start_date, end_date)
+            DataProcessor.process_actors(spark_session, start_date, end_date)
+        case "repos":
+            DataProcessor.process_repos(spark_session, start_date, end_date)
         case "github_events":
             pass
-        case "repos":
-            pass
         case _:
-            raise ValueError(f"Unknown dataset: {dataset_name}")
+            raise ValueError(f"Unknown dataset: {dataset}")
+
+    logger.info(f"Transformation for dataset: {dataset} completed successfully.")
+    spark_session.stop()
 
 
 if __name__ == "__main__":
