@@ -31,7 +31,6 @@ github_client = GithubClient()
 @click.option("--end_date", help="The end date for the data dump in YYYY-MM-DD format.")
 @click.option("--chunk_size", default=20, help="GraphQL query chunk size.")
 def run(start_date: str, end_date: str, chunk_size: int = 20) -> None:
-
     if not start_date or not end_date:
         start_date, end_date = get_first_and_last_day_of_month(
             year=datetime.now().year, month=datetime.now().month
@@ -40,9 +39,7 @@ def run(start_date: str, end_date: str, chunk_size: int = 20) -> None:
         start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
         end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
 
-    for daily_part_data, current_date, part in gh_archive_client.get_events_dump(
-        start_date, end_date
-    ):
+    for daily_part_data, current_date, part in gh_archive_client.get_events_dump(start_date, end_date):
         data = decompress_data(daily_part_data)
         data = add_column(
             list=data, column_name="ingested_at", value=int(datetime.now(timezone.utc).timestamp())

@@ -1,52 +1,28 @@
 from datetime import date
 from typing import List
 
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import (
-    col,
-    current_timestamp,
-    row_number,
-    split,
-)
-from pyspark.sql.window import Window
-from src.schema import ACTORS_SCHEMA, REPOS_SCHEMA
+from pyspark.sql import DataFrame, SparkSession
+from src.schema import ACTORS_SCHEMA, GITHUB_EVENTS_SCHEMA, REPOS_SCHEMA
 from src.transformer import Transformer
 from src.utils import build_paths
 
 
 class DataProcessor:
+    def __init__(self, spark_session: SparkSession):
+        self.spark_session = spark_session
+        self.transformer = Transformer()
 
-    @classmethod
-    def process_actors(cls, spark: SparkSession, start_date: date, end_date: date) -> None:
-
+    def process_actors(self, start_date: date, end_date: date) -> None:
         paths: List[str] = build_paths(start_date=start_date, end_date=end_date, dataset="actors")
 
-        df = (
-            spark.read.schema(ACTORS_SCHEMA)
+        actors_df = (
+            self.spark_session.read.schema(ACTORS_SCHEMA)
             .json(paths)
-            .dropDuplicates()
-            .dropna(subset=["login"])
-            .withColumnRenamed("__typename", "type")
-            .withColumnRenamed("avatarUrl", "avatar_url")
-            .withColumnRenamed("websiteUrl", "website_url")
-            .withColumnRenamed("createdAt", "created_at")
-            .withColumnRenamed("twitterUsername", "twitter_username")
-            .withColumn("followers_count", col("followers.totalCount"))
-            .withColumn("following_count", col("following.totalCount"))
-            .withColumn("repositories_count", col("repositories.totalCount"))
-            .withColumn("gists_count", col("gists.totalCount"))
-            .withColumn("status_message", col("status.message"))
-            .drop("followers", "following", "repositories", "gists", "status", "id")
-            .withColumn("updated_at", current_timestamp())
+            .transform(self.transformer.transform_actors)
         )
+        actors_df.createOrReplaceTempView("staging_actor")
 
-        window = Window.partitionBy("login").orderBy(col("ingested_at").desc())
-        df = df.withColumn("rn", row_number().over(window)).filter(col("rn") == 1)
-
-        df = df.drop("rn", "followers", "following", "repositories", "gists", "status", "id")
-        df.createOrReplaceTempView("staging_actor")
-
-        spark.sql(
+        self.spark_session.sql(
             """
                 MERGE INTO
                     ggazers.silver.dim_actor AS target
@@ -83,39 +59,18 @@ class DataProcessor:
             """
         )
 
-    @classmethod
-    def process_repos(cls, spark: SparkSession, start_date: date, end_date: date) -> None:
+    def process_repos(self, start_date: date, end_date: date) -> None:
         paths: List[str] = build_paths(start_date=start_date, end_date=end_date, dataset="repos")
 
-        df = (
-            spark.read.schema(REPOS_SCHEMA)
+        repos_df = (
+            self.spark_session.read.schema(REPOS_SCHEMA)
             .json(paths)
-            .dropDuplicates()
-            .dropna(subset=["nameWithOwner"])
-            .withColumnRenamed("nameWithOwner", "name_with_owner")
-            .withColumn("owner", split(col("name_with_owner"), "/").getItem(0))
-            .withColumn("name", split(col("name_with_owner"), "/").getItem(1))
-            .withColumnRenamed("createdAt", "created_at")
-            .withColumnRenamed("isPrivate", "is_private")
-            .withColumnRenamed("isArchived", "is_archived")
-            .withColumnRenamed("isFork", "is_fork")
-            .withColumnRenamed("diskUsage", "disk_usage")
-            .withColumnRenamed("stargazerCount", "stargazers_count")
-            .withColumnRenamed("forkCount", "forks_count")
-            .withColumn("watchers_count", col("watchers.totalCount"))
-            .withColumn("issues_count", col("issues.totalCount"))
-            .withColumn("primary_language", col("primaryLanguage.name"))
-            .withColumn("updated_at", current_timestamp())
-            .transform(Transformer.flatten_repository_topics)
+            .transform(self.transformer.transform_repos)
         )
 
-        window = Window.partitionBy("name_with_owner").orderBy(col("ingested_at").desc())
-        df = df.withColumn("rn", row_number().over(window)).filter(col("rn") == 1)
-        df = df.drop("rn", "ingested_at", "id", "watchers", "issues", "primaryLanguage")
+        repos_df.createOrReplaceTempView("staging_repo")
 
-        df.createOrReplaceTempView("staging_repo")
-
-        spark.sql(
+        self.spark_session.sql(
             """
                 MERGE INTO
                     ggazers.silver.dim_repo AS target
@@ -155,3 +110,44 @@ class DataProcessor:
                     )
             """
         )
+
+    def _process_events(self, events_df: DataFrame) -> None:
+        commit_comment_events = events_df.transform(self.transformer.transform_commit_comment_events)
+
+        commit_comment_events.show(truncate=False, n=5)
+
+    def _process_sessions(self, events_df: DataFrame) -> None:
+        sessions_df = self.transformer.transform_sessions(events_df)
+        sessions_df.createOrReplaceTempView("staging_sessions")
+
+        self.spark_session.sql(
+            """
+                MERGE INTO
+                    ggazers.silver.dim_coding_session AS target
+                USING
+                    staging_sessions AS source
+                ON
+                    target.actor_login = source.actor_login
+                    AND target.session_start = source.session_start
+                WHEN NOT MATCHED THEN
+                    INSERT (
+                        actor_login, session_start, session_end, duration, event_count
+                    )
+                    VALUES (
+                        source.actor_login, source.session_start, source.session_end,
+                        source.session_duration_seconds, source.events_count
+                    )
+            """
+        )
+
+    def process_github_events(self, start_date: date, end_date: date) -> None:
+        paths: List[str] = build_paths(start_date=start_date, end_date=end_date, dataset="github_events")
+
+        events_df = (
+            self.spark_session.read.schema(GITHUB_EVENTS_SCHEMA)
+            .json(paths)
+            .transform(self.transformer.transform_events)
+        )
+
+        self._process_sessions(events_df)
+        self._process_events(events_df)

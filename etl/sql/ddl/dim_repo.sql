@@ -16,4 +16,4 @@ CREATE TABLE IF NOT EXISTS ggazers.silver.dim_repo (
     primary_language STRING,
     repository_topics ARRAY<STRING>,
     updated_at TIMESTAMP
-)
+) USING ICEBERG

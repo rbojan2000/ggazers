@@ -15,7 +15,6 @@ class GHArchiveClient:
     def get_events_dump(
         self, start_date: date, end_date: date
     ) -> Generator[Tuple[bytes, date, int], None, None]:
-
         logger.info(f"Fetching data from {start_date} to {end_date}")
         current_date = start_date
 

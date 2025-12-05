@@ -2,7 +2,7 @@ import calendar
 from datetime import date, timedelta
 from typing import List, Tuple
 
-from src.paths import ACTORS_PATH, REPOS_PATH
+from src.paths import ACTORS_PATH, GITHUB_EVENTS_PATH, REPOS_PATH
 
 
 def get_first_and_last_day_of_month(year: int, month: int) -> Tuple[date, date]:
@@ -12,15 +12,14 @@ def get_first_and_last_day_of_month(year: int, month: int) -> Tuple[date, date]:
     return first_day, last_day
 
 
-def build_paths(
-    start_date: date, end_date: date, dataset: str, parts_per_date: int = 24
-) -> List[str]:
-
+def build_paths(start_date: date, end_date: date, dataset: str, parts_per_date: int = 24) -> List[str]:
     match dataset:
         case "actors":
             base_path = ACTORS_PATH
         case "repos":
             base_path = REPOS_PATH
+        case "github_events":
+            base_path = GITHUB_EVENTS_PATH
         case _:
             raise ValueError(f"Unknown dataset: {dataset}")
 

@@ -89,7 +89,6 @@ class GithubClient:
     def build_graphql_query(
         self, actors: Optional[List[str]] = None, repos: Optional[List[str]] = None
     ) -> Optional[str]:
-
         if not actors and not repos:
             logger.warning("No actors or repositories provided for query building.")
             return None

@@ -9,7 +9,7 @@ isort:
 	isort --profile black etl/
 
 flake:
-	flake8 --max-line-length=100 --ignore=E203 \
+	flake8 --max-line-length=111 --ignore=E203 \
 		etl/ingestion/src/ \
 		etl/ingestion/tests/ \
 		etl/transformation/src/ \
@@ -27,7 +27,7 @@ check-etl-formatting:
 		etl/transformation/tests/ && \
 	isort --check --profile black \
 		etl/ && \
-	flake8 --max-line-length=100 --ignore=E203 \
+	flake8 --max-line-length=111 --ignore=E203 \
 		etl/ingestion/src/ \
 		etl/ingestion/tests/ \
 		etl/transformation/src/ \

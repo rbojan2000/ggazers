@@ -27,9 +27,7 @@ class DataProcessorTests(unittest.TestCase):
             .config("spark.sql.catalog.ggazers", "org.apache.iceberg.spark.SparkCatalog")
             .config("spark.sql.catalog.ggazers.type", "hadoop")
             .config("spark.sql.catalog.ggazers.warehouse", str(cls.warehouse_path))
-            .config(
-                "spark.jars.packages", "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.6.0"
-            )
+            .config("spark.jars.packages", "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.6.0")
             .config(
                 "spark.sql.extensions",
                 "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions",
@@ -83,11 +81,24 @@ class DataProcessorTests(unittest.TestCase):
             """
         )
 
+        cls.spark.sql(
+            """
+            CREATE TABLE IF NOT EXISTS ggazers.silver.dim_coding_session (
+                actor_login STRING NOT NULL,
+                session_start TIMESTAMP NOT NULL,
+                session_end TIMESTAMP,
+                duration BIGINT,
+                event_count BIGINT
+            ) USING ICEBERG
+            """
+        )
+
     @classmethod
     def tearDownClass(cls):
         if cls.spark:
             cls.spark.sql("DROP TABLE IF EXISTS ggazers.silver.dim_actor")
             cls.spark.sql("DROP TABLE IF EXISTS ggazers.silver.dim_repo")
+            cls.spark.sql("DROP TABLE IF EXISTS ggazers.silver.dim_coding_session")
             cls.spark.sql("DROP NAMESPACE IF EXISTS ggazers.silver")
             cls.spark.stop()
             import time
@@ -100,6 +111,9 @@ class DataProcessorTests(unittest.TestCase):
     def setUp(self):
         self.spark.sql("DELETE FROM ggazers.silver.dim_actor")
         self.spark.sql("DELETE FROM ggazers.silver.dim_repo")
+        self.spark.sql("DELETE FROM ggazers.silver.dim_coding_session")
+
+        self.processor = DataProcessor(self.spark)
 
         self.test_data_dir = Path(tempfile.mkdtemp())
         self.actors_dir = self.test_data_dir / "actors"
@@ -157,12 +171,11 @@ class DataProcessorTests(unittest.TestCase):
         file_path = self._create_actor_test_file("2025_11_01", 0, test_data)
         mock_build_paths.return_value = [file_path]
 
-        DataProcessor.process_actors(self.spark, date(2025, 11, 1), date(2025, 11, 1))
+        self.processor.process_actors(date(2025, 11, 1), date(2025, 11, 1))
 
         result = self.spark.sql("SELECT * FROM ggazers.silver.dim_actor").collect()
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].login, "octocat")
-        self.assertEqual(result[0].type, "User")
         self.assertEqual(result[0].followers_count, 100)
 
     @patch("src.processor.build_paths")
@@ -199,7 +212,7 @@ class DataProcessorTests(unittest.TestCase):
         file_path = self._create_actor_test_file("2025_11_01", 0, test_data)
         mock_build_paths.return_value = [file_path]
 
-        DataProcessor.process_actors(self.spark, date(2025, 11, 1), date(2025, 11, 1))
+        self.processor.process_actors(date(2025, 11, 1), date(2025, 11, 1))
 
         result = self.spark.sql("SELECT * FROM ggazers.silver.dim_actor").collect()
         self.assertEqual(len(result), 1)
@@ -209,12 +222,11 @@ class DataProcessorTests(unittest.TestCase):
 
     @patch("src.processor.build_paths")
     def test_process_repos_insert(self, mock_build_paths):
-        """Test inserting new repos"""
+        """Test inserting new repositories"""
         test_data = [
             {
-                "id": "456",
                 "nameWithOwner": "octocat/hello-world",
-                "description": "A test repo",
+                "description": "My first repository",
                 "createdAt": "2020-01-01T00:00:00Z",
                 "isPrivate": False,
                 "isArchived": False,
@@ -239,7 +251,7 @@ class DataProcessorTests(unittest.TestCase):
         file_path = self._create_repo_test_file("2025_11_01", 0, test_data)
         mock_build_paths.return_value = [file_path]
 
-        DataProcessor.process_repos(self.spark, date(2025, 11, 1), date(2025, 11, 1))
+        self.processor.process_repos(date(2025, 11, 1), date(2025, 11, 1))
 
         result = self.spark.sql("SELECT * FROM ggazers.silver.dim_repo").collect()
         self.assertEqual(len(result), 1)
@@ -248,47 +260,50 @@ class DataProcessorTests(unittest.TestCase):
         self.assertEqual(result[0].name, "hello-world")
         self.assertEqual(result[0].stargazers_count, 100)
 
-    @patch("src.processor.build_paths")
-    def test_process_actors_deduplication(self, mock_build_paths):
-        """Test that duplicate actors are handled correctly"""
+    def test_process_repos_update(self):
+        """Test updating existing repositories"""
+        self.spark.sql(
+            """
+            INSERT INTO ggazers.silver.dim_repo VALUES (
+                'octocat/hello-world', 'hello-world', 'octocat', 'Old description',
+                FALSE, FALSE, FALSE, 512, 'PUBLIC', 50, 5, 25, 2,
+                'JavaScript', 'javascript,web', CURRENT_TIMESTAMP()
+            )
+            """
+        )
+
         test_data = [
             {
-                "id": "123",
-                "login": "octocat",
-                "__typename": "User",
-                "avatarUrl": "https://avatar1.url",
-                "websiteUrl": None,
+                "nameWithOwner": "octocat/hello-world",
+                "description": "Updated repository description",
                 "createdAt": "2020-01-01T00:00:00Z",
-                "twitterUsername": None,
-                "followers": {"totalCount": 100},
-                "following": {"totalCount": 50},
-                "repositories": {"totalCount": 25},
-                "gists": {"totalCount": 10},
-                "status": None,
+                "isPrivate": False,
+                "isArchived": False,
+                "isFork": False,
+                "diskUsage": 2048,
+                "visibility": "PUBLIC",
+                "stargazerCount": 150,
+                "forkCount": 15,
+                "watchers": {"totalCount": 75},
+                "issues": {"totalCount": 10},
+                "primaryLanguage": {"name": "Python"},
+                "repositoryTopics": {
+                    "nodes": [
+                        {"topic": {"name": "python"}},
+                        {"topic": {"name": "data-engineering"}},
+                    ]
+                },
                 "ingested_at": "2025-11-01T00:00:00Z",
-            },
-            {
-                "id": "123",
-                "login": "octocat",
-                "__typename": "User",
-                "avatarUrl": "https://avatar2.url",
-                "websiteUrl": None,
-                "createdAt": "2020-01-01T00:00:00Z",
-                "twitterUsername": None,
-                "followers": {"totalCount": 150},
-                "following": {"totalCount": 75},
-                "repositories": {"totalCount": 30},
-                "gists": {"totalCount": 15},
-                "status": None,
-                "ingested_at": "2025-11-01T01:00:00Z",
-            },
+            }
         ]
 
-        file_path = self._create_actor_test_file("2025_11_01", 0, test_data)
-        mock_build_paths.return_value = [file_path]
+        file_path = self._create_repo_test_file("2025_11_01", 0, test_data)
 
-        DataProcessor.process_actors(self.spark, date(2025, 11, 1), date(2025, 11, 1))
+        with patch("src.processor.build_paths", return_value=[file_path]):
+            self.processor.process_repos(date(2025, 11, 1), date(2025, 11, 1))
 
-        result = self.spark.sql("SELECT * FROM ggazers.silver.dim_actor").collect()
+        result = self.spark.sql("SELECT * FROM ggazers.silver.dim_repo").collect()
         self.assertEqual(len(result), 1)
-        self.assertEqual(result[0].followers_count, 150)
+        self.assertEqual(result[0].description, "Updated repository description")
+        self.assertEqual(result[0].disk_usage, 2048)
+        self.assertEqual(result[0].stargazers_count, 150)

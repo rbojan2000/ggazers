@@ -11,5 +11,5 @@ CREATE TABLE IF NOT EXISTS ggazers.silver.dim_actor (
     gists_count BIGINT,
     status_message STRING,
     updated_at TIMESTAMP
-)
+) USING ICEBERG
 PARTITIONED BY (type)

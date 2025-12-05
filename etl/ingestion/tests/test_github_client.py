@@ -53,9 +53,7 @@ def test_run_query_success(mock_post):
 def test_run_query_primary_fails_secondary_ok(mock_post):
     mock_post.side_effect = [
         make_response(http.HTTPStatus.OK, {"err": "rate limit"}),
-        make_response(
-            http.HTTPStatus.OK, {"data": {"octocat": {"login": "octocat", "name": "The Octocat"}}}
-        ),
+        make_response(http.HTTPStatus.OK, {"data": {"octocat": {"login": "octocat", "name": "The Octocat"}}}),
     ]
 
     client = GithubClient(primary_token="A", secondary_token="B")

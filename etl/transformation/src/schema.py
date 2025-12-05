@@ -3,6 +3,7 @@ from pyspark.sql.types import (
     BooleanType,
     IntegerType,
     LongType,
+    MapType,
     StringType,
     StructField,
     StructType,
@@ -57,9 +58,7 @@ REPOS_SCHEMA = StructType(
         StructField("visibility", StringType(), False),
         StructField("stargazerCount", IntegerType(), False),
         StructField("forkCount", IntegerType(), False),
-        StructField(
-            "watchers", StructType([StructField("totalCount", IntegerType(), False)]), False
-        ),
+        StructField("watchers", StructType([StructField("totalCount", IntegerType(), False)]), False),
         StructField("issues", StructType([StructField("totalCount", IntegerType(), False)]), False),
         StructField("primaryLanguage", StructType([StructField("name", StringType(), True)]), True),
         StructField(
@@ -68,5 +67,48 @@ REPOS_SCHEMA = StructType(
             True,
         ),
         StructField("ingested_at", StringType(), False),
+    ]
+)
+
+ACTOR_SCHEMA = StructType(
+    [
+        StructField("id", LongType(), False),
+        StructField("login", StringType(), False),
+        StructField("display_login", StringType(), True),
+        StructField("gravatar_id", StringType(), True),
+        StructField("url", StringType(), True),
+        StructField("avatar_url", StringType(), True),
+    ]
+)
+
+REPO_SCHEMA = StructType(
+    [
+        StructField("id", LongType(), False),
+        StructField("name", StringType(), False),
+        StructField("url", StringType(), True),
+    ]
+)
+
+ORG_SCHEMA = StructType(
+    [
+        StructField("id", LongType(), True),
+        StructField("login", StringType(), True),
+        StructField("gravatar_id", StringType(), True),
+        StructField("url", StringType(), True),
+        StructField("avatar_url", StringType(), True),
+    ]
+)
+
+GITHUB_EVENTS_SCHEMA = StructType(
+    [
+        StructField("id", StringType(), False),
+        StructField("type", StringType(), False),
+        StructField("actor", ACTOR_SCHEMA, False),
+        StructField("repo", REPO_SCHEMA, False),
+        StructField("payload", MapType(StringType(), StringType(), True), True),
+        StructField("public", BooleanType(), False),
+        StructField("created_at", TimestampType(), False),
+        StructField("org", ORG_SCHEMA, True),
+        StructField("ingested_at", LongType(), False),
     ]
 )

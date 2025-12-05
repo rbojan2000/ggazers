@@ -11,7 +11,6 @@ black = "^25.11.0"
 isort = "^7.0.0"
 flake8 = "^7.3.0"
 pytest = "^9.0.1"
-requests = "^2.32.5"
 pyspark = "3.5.2"
 
 [tool.isort]
@@ -24,5 +23,5 @@ use_parentheses = true
 ensure_newline_before_comments = true
 
 [tool.black]
-line-length = 100
+line-length = 111
 target-version = ["py311"]
