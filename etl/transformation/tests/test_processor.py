@@ -113,7 +113,8 @@ class DataProcessorTests(unittest.TestCase):
         self.spark.sql("DELETE FROM ggazers.silver.dim_repo")
         self.spark.sql("DELETE FROM ggazers.silver.dim_coding_session")
 
-        self.processor = DataProcessor(self.spark)
+        self.processor = DataProcessor()
+        self.processor.spark_session = self.spark
 
         self.test_data_dir = Path(tempfile.mkdtemp())
         self.actors_dir = self.test_data_dir / "actors"

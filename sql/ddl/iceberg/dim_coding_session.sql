@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS ggazers.silver.dim_coding_session (
     session_start TIMESTAMP NOT NULL,
     session_end TIMESTAMP NOT NULL,
     duration BIGINT NOT NULL,
-    event_count INT NOT NULL
+    event_count INT NOT NULL,
+    repos STRING NOT NULL
 ) USING ICEBERG
 PARTITIONED BY (days(session_start))

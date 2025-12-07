@@ -2,24 +2,12 @@ import logging
 from datetime import datetime
 
 import click
-from pyspark.sql import SparkSession
-from src.paths import DATA_PATH
 from src.processor import DataProcessor
 from src.utils import get_first_and_last_day_of_month
 
 logger = logging.getLogger(__name__)
 
-spark_session: SparkSession = (
-    SparkSession.builder.appName("transformation")
-    .config("spark.sql.session.timeZone", "UTC")
-    .config("spark.jars.packages", "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.6.0")
-    .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
-    .config("spark.sql.catalog.ggazers", "org.apache.iceberg.spark.SparkCatalog")
-    .config("spark.sql.catalog.ggazers.type", "hadoop")
-    .config("spark.sql.catalog.ggazers.warehouse", DATA_PATH)
-    .getOrCreate()
-)
-data_processor = DataProcessor(spark_session)
+data_processor = DataProcessor()
 
 
 @click.command()
@@ -41,6 +29,7 @@ def run(start_date: str, end_date: str, dataset: str) -> None:
         start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
         end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
 
+    data_processor.init_spark_session()
     match dataset.lower():
         case "actors":
             data_processor.process_actors(start_date, end_date)
@@ -52,7 +41,8 @@ def run(start_date: str, end_date: str, dataset: str) -> None:
             raise ValueError(f"Unknown dataset: {dataset}")
 
     logger.info(f"Transformation for dataset: {dataset} completed successfully.")
-    spark_session.stop()
+
+    data_processor.terminate_spark_session()
 
 
 if __name__ == "__main__":

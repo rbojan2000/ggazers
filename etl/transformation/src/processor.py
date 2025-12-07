@@ -3,6 +3,7 @@ from datetime import date
 from typing import List
 
 from pyspark.sql import DataFrame, SparkSession
+from src.paths import DATA_PATH
 from src.schema import ACTORS_SCHEMA, GITHUB_EVENTS_SCHEMA, REPOS_SCHEMA
 from src.transformer import Transformer
 from src.utils import build_paths
@@ -11,9 +12,25 @@ logger = logging.getLogger(__name__)
 
 
 class DataProcessor:
-    def __init__(self, spark_session: SparkSession):
-        self.spark_session = spark_session
+    def __init__(self):
         self.transformer = Transformer()
+
+    def init_spark_session(self) -> None:
+        self.spark_session: SparkSession = (
+            SparkSession.builder.appName("transformation")
+            .config("spark.sql.session.timeZone", "UTC")
+            .config("spark.jars.packages", "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.6.0")
+            .config(
+                "spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
+            )
+            .config("spark.sql.catalog.ggazers", "org.apache.iceberg.spark.SparkCatalog")
+            .config("spark.sql.catalog.ggazers.type", "hadoop")
+            .config("spark.sql.catalog.ggazers.warehouse", DATA_PATH)
+            .getOrCreate()
+        )
+
+    def terminate_spark_session(self) -> None:
+        self.spark_session.stop()
 
     def process_actors(self, start_date: date, end_date: date) -> None:
         paths: List[str] = build_paths(start_date=start_date, end_date=end_date, dataset="actors")
@@ -97,19 +114,20 @@ class DataProcessor:
                         watchers_count    = source.watchers_count,
                         issues_count      = source.issues_count,
                         primary_language  = source.primary_language,
+                        repository_topics  = source.repository_topics,
                         updated_at        = source.updated_at
                 WHEN NOT MATCHED THEN
                     INSERT (
                         name_with_owner, name, owner, description, is_private, is_archived,
                         is_fork, disk_usage, visibility, stargazers_count, forks_count,
-                        watchers_count, issues_count, primary_language, updated_at
+                        watchers_count, issues_count, primary_language, repository_topics, updated_at
                     )
                     VALUES (
                         source.name_with_owner, source.name, source.owner, source.description,
                         source.is_private, source.is_archived, source.is_fork,
                         source.disk_usage, source.visibility, source.stargazers_count,
                         source.forks_count, source.watchers_count, source.issues_count,
-                        source.primary_language, source.updated_at
+                        source.primary_language, source.repository_topics, source.updated_at
                     )
             """
         )
@@ -135,44 +153,48 @@ class DataProcessor:
             (
                 fact_commit_comment_events_df,
                 "fact_commit_comment_events",
-                ["actor_login", "repo_name", "created_at"],
+                ["actor_login", "repo_name", "created_at", "type"],
             ),
             (
                 fact_create_events_df,
                 "fact_create_events",
-                ["actor_login", "repo_name", "created_at", "ref_type", "ref"],
+                ["actor_login", "repo_name", "created_at", "ref_type", "ref", "type"],
             ),
             (
                 fact_discussion_events_df,
                 "fact_discussion_events",
-                ["actor_login", "repo_name", "created_at", "title"],
+                ["actor_login", "repo_name", "created_at", "title", "type"],
             ),
-            (fact_fork_events_df, "fact_fork_events", ["actor_login", "repo_name", "created_at"]),
+            (fact_fork_events_df, "fact_fork_events", ["actor_login", "repo_name", "created_at", "type"]),
             (
                 fact_gollum_events_df,
                 "fact_gollum_events",
-                ["actor_login", "repo_name", "created_at", "page_titles"],
+                ["actor_login", "repo_name", "created_at", "page_titles", "type"],
             ),
             (
                 fact_issue_comment_events_df,
                 "fact_issue_comment_events",
-                ["actor_login", "repo_name", "created_at", "title"],
+                ["actor_login", "repo_name", "created_at", "title", "type"],
             ),
-            (fact_issue_events_df, "fact_issue_events", ["actor_login", "repo_name", "created_at", "title"]),
+            (
+                fact_issue_events_df,
+                "fact_issue_events",
+                ["actor_login", "repo_name", "created_at", "title", "type"],
+            ),
             (
                 fact_member_events_df,
                 "fact_member_events",
-                ["actor_login", "repo_name", "created_at", "member"],
+                ["actor_login", "repo_name", "created_at", "member", "type"],
             ),
             (
                 fact_pull_request_events_df,
                 "fact_pull_request_events",
-                ["actor_login", "repo_name", "created_at", "number"],
+                ["actor_login", "repo_name", "created_at", "number", "type"],
             ),
             (
                 fact_pull_request_review_comment_events_df,
                 "fact_pull_request_review_comment_events",
-                ["actor_login", "repo_name", "created_at", "number", "comment"],
+                ["actor_login", "repo_name", "created_at", "number", "comment", "type"],
             ),
             (fact_push_events_df, "fact_push_events", ["actor_login", "repo_name", "created_at", "ref"]),
             (fact_release_events_df, "fact_release_events", ["actor_login", "repo_name", "created_at"]),
@@ -220,11 +242,11 @@ class DataProcessor:
                     AND target.session_start = source.session_start
                 WHEN NOT MATCHED THEN
                     INSERT (
-                        actor_login, session_start, session_end, duration, event_count
+                        actor_login, session_start, session_end, duration, event_count, repos
                     )
                     VALUES (
                         source.actor_login, source.session_start, source.session_end,
-                        source.session_duration_seconds, source.events_count
+                        source.session_duration_seconds, source.events_count, source.repos
                     )
             """
         )

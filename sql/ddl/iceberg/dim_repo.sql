@@ -3,7 +3,6 @@ CREATE TABLE IF NOT EXISTS ggazers.silver.dim_repo (
     name STRING,
     owner STRING,
     description STRING,
-    created_at TIMESTAMP,
     is_private BOOLEAN,
     is_archived BOOLEAN,
     is_fork BOOLEAN,
@@ -12,8 +11,9 @@ CREATE TABLE IF NOT EXISTS ggazers.silver.dim_repo (
     stargazers_count BIGINT,
     forks_count BIGINT,
     watchers_count BIGINT,
+    issues_count BIGINT,
     ingested_at TIMESTAMP,
     primary_language STRING,
-    repository_topics ARRAY<STRING>,
+    repository_topics STRING,
     updated_at TIMESTAMP
 ) USING ICEBERG

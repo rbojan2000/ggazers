@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS ggazers.silver.dim_actor (
-    actor_login STRING NOT NULL,
+    login STRING NOT NULL,
     type STRING,
     avatar_url STRING,
     website_url STRING,

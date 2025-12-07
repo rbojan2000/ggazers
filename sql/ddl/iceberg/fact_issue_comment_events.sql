@@ -1,4 +1,5 @@
 CREATE TABLE IF NOT EXISTS ggazers.silver.fact_issue_comment_events (
+    type STRING,
     actor_login STRING NOT NULL,
     repo_name STRING NOT NULL,
     created_at TIMESTAMP NOT NULL,

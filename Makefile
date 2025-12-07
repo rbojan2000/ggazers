@@ -3,7 +3,9 @@ black:
 		etl/ingestion/src/ \
 		etl/ingestion/tests/ \
 		etl/transformation/src/ \
-		etl/transformation/tests/
+		etl/transformation/tests/ \
+		etl/load/src/ \
+		etl/load/tests/
 
 isort:
 	isort --profile black etl/
@@ -13,11 +15,14 @@ flake:
 		etl/ingestion/src/ \
 		etl/ingestion/tests/ \
 		etl/transformation/src/ \
-		etl/transformation/tests/
+		etl/transformation/tests/ \
+		etl/load/src/ \
+		etl/load/tests/
 
 tests:
 	pytest -v etl/ingestion/tests/ && \
-	pytest -v etl/transformation/tests/
+	pytest -v etl/transformation/tests/ && \
+	pytest -v etl/load/tests/
 
 check-etl-formatting:
 	black --check \
@@ -31,7 +36,9 @@ check-etl-formatting:
 		etl/ingestion/src/ \
 		etl/ingestion/tests/ \
 		etl/transformation/src/ \
-		etl/transformation/tests/
+		etl/transformation/tests/ \
+		etl/load/src/ \
+		etl/load/tests/
 
 run-ingestion:
 	cd etl/ingestion && \

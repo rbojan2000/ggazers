@@ -475,15 +475,18 @@ class TransformerTests(unittest.TestCase):
         data = [
             {
                 "actor_login": "user1",
-                "event_time": datetime(2025, 11, 1, 10, 0, 0),
+                "created_at": datetime(2025, 11, 1, 10, 0, 0),
+                "repo_name": "repo1",
             },
             {
                 "actor_login": "user1",
-                "event_time": datetime(2025, 11, 1, 11, 0, 0),
+                "created_at": datetime(2025, 11, 1, 11, 0, 0),
+                "repo_name": "repo2",
             },
             {
                 "actor_login": "user1",
-                "event_time": datetime(2025, 11, 1, 13, 0, 0),
+                "created_at": datetime(2025, 11, 1, 13, 0, 0),
+                "repo_name": "repo3",
             },
         ]
 
@@ -502,20 +505,24 @@ class TransformerTests(unittest.TestCase):
             # Session 1
             {
                 "actor_login": "user1",
-                "event_time": datetime(2025, 11, 1, 10, 0, 0),
+                "created_at": datetime(2025, 11, 1, 10, 0, 0),
+                "repo_name": "repo1",
             },
             {
                 "actor_login": "user1",
-                "event_time": datetime(2025, 11, 1, 11, 0, 0),
+                "created_at": datetime(2025, 11, 1, 11, 0, 0),
+                "repo_name": "repo2",
             },
             # Session 2 (9 hours later)
             {
                 "actor_login": "user1",
-                "event_time": datetime(2025, 11, 1, 20, 0, 0),
+                "created_at": datetime(2025, 11, 1, 20, 0, 0),
+                "repo_name": "repo3",
             },
             {
                 "actor_login": "user1",
-                "event_time": datetime(2025, 11, 1, 21, 0, 0),
+                "created_at": datetime(2025, 11, 1, 21, 0, 0),
+                "repo_name": "repo4",
             },
         ]
 
@@ -524,21 +531,6 @@ class TransformerTests(unittest.TestCase):
         result = df_transformed.collect()
 
         self.assertEqual(len(result), 2)
-
-    def test_transform_sessions_filters_single_events(self):
-        """Test that single-event sessions are filtered out"""
-        data = [
-            {
-                "actor_login": "user1",
-                "event_time": datetime(2025, 11, 1, 10, 0, 0),
-            },
-        ]
-
-        df = self.spark.createDataFrame(data)
-        df_transformed = self.transformer.transform_sessions(df)
-        result = df_transformed.collect()
-
-        self.assertEqual(len(result), 0)
 
     def test_transform_sessions_multiple_users(self):
         """Test session transformation with multiple users"""
@@ -546,20 +538,24 @@ class TransformerTests(unittest.TestCase):
             # User 1
             {
                 "actor_login": "user1",
-                "event_time": datetime(2025, 11, 1, 10, 0, 0),
+                "created_at": datetime(2025, 11, 1, 10, 0, 0),
+                "repo_name": "repo1",
             },
             {
                 "actor_login": "user1",
-                "event_time": datetime(2025, 11, 1, 11, 0, 0),
+                "created_at": datetime(2025, 11, 1, 11, 0, 0),
+                "repo_name": "repo2",
             },
             # User 2
             {
                 "actor_login": "user2",
-                "event_time": datetime(2025, 11, 1, 10, 0, 0),
+                "created_at": datetime(2025, 11, 1, 10, 0, 0),
+                "repo_name": "repo3",
             },
             {
                 "actor_login": "user2",
-                "event_time": datetime(2025, 11, 1, 12, 0, 0),
+                "created_at": datetime(2025, 11, 1, 12, 0, 0),
+                "repo_name": "repo4",
             },
         ]
 
@@ -568,23 +564,20 @@ class TransformerTests(unittest.TestCase):
         result = df_transformed.collect()
 
         self.assertEqual(len(result), 2)
-        users = sorted([r.actor_login for r in result])
-        self.assertEqual(users, ["user1", "user2"])
-
-    def test_transform_sessions_session_gap(self):
-        """Test that session gap is correctly set to 8 hours"""
-        self.assertEqual(self.transformer.session_gap_seconds, 8 * 60 * 60)
+        self.assertSetEqual(set([r.actor_login for r in result]), {"user1", "user2"})
 
     def test_transform_sessions_exact_boundary(self):
         """Test session boundary at exactly 8 hours"""
         data = [
             {
                 "actor_login": "user1",
-                "event_time": datetime(2025, 11, 1, 10, 0, 0),
+                "created_at": datetime(2025, 11, 1, 10, 0, 0),
+                "repo_name": "repo1",
             },
             {
                 "actor_login": "user1",
-                "event_time": datetime(2025, 11, 1, 18, 0, 0),  # Exactly 8 hours later
+                "created_at": datetime(2025, 11, 1, 18, 0, 0),  # Exactly 8 hours later
+                "repo_name": "repo2",
             },
         ]
 
@@ -594,3 +587,5 @@ class TransformerTests(unittest.TestCase):
 
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].events_count, 2)
+        self.assertEqual(result[0].session_duration_seconds, 8 * 60 * 60)
+        self.assertEqual(result[0].repos, "repo2,repo1")

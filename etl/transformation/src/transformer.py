@@ -48,6 +48,7 @@ class Transformer:
 
     def transform_actors(self, actors_df: DataFrame) -> DataFrame:
         actors_df = actors_df \
+            .dropna(subset=["login"]) \
             .withColumnRenamed("__typename", "type") \
             .withColumnRenamed("avatarUrl", "avatar_url") \
             .withColumnRenamed("websiteUrl", "website_url") \
@@ -73,6 +74,7 @@ class Transformer:
 
     def transform_repos(self, repos_df: DataFrame) -> DataFrame:
         repos_df = repos_df \
+            .dropna(subset=["nameWithOwner"]) \
             .withColumnRenamed("nameWithOwner", "name_with_owner") \
             .withColumnRenamed("isPrivate", "is_private") \
             .withColumnRenamed("isArchived", "is_archived") \
@@ -104,17 +106,18 @@ class Transformer:
     def transform_sessions(self, events_df: DataFrame) -> DataFrame:
         window_spec = Window \
             .partitionBy("actor_login") \
-            .orderBy("event_time")
+            .orderBy("created_at")
 
         df_with_sessions = (
             events_df.select(
                 col("actor_login"),
-                col("event_time"),
+                col("repo_name"),
+                col("created_at"),
             )
-            .withColumn("prev_event_time", lag("event_time").over(window_spec))
+            .withColumn("prev_event_time", lag("created_at").over(window_spec))
             .withColumn(
                 "time_diff_seconds",
-                unix_timestamp("event_time") - unix_timestamp("prev_event_time"),
+                unix_timestamp("created_at") - unix_timestamp("prev_event_time"),
             )
             .withColumn(
                 "is_new_session",
@@ -127,7 +130,7 @@ class Transformer:
 
         window_session_id = Window \
             .partitionBy("actor_login") \
-            .orderBy("event_time") \
+            .orderBy("created_at") \
             .rowsBetween(Window.unboundedPreceding, Window.currentRow)
 
         df_with_session_ids = df_with_sessions \
@@ -137,12 +140,13 @@ class Transformer:
             df_with_session_ids
             .groupBy("actor_login", "session_id")
             .agg(
-                spark_min("event_time").alias("session_start"),
-                spark_max("event_time").alias("session_end"),
+                spark_min("created_at").alias("session_start"),
+                spark_max("created_at").alias("session_end"),
                 (
-                    unix_timestamp(spark_max("event_time")) - unix_timestamp(spark_min("event_time"))
+                    unix_timestamp(spark_max("created_at")) - unix_timestamp(spark_min("created_at"))
                 ).alias("session_duration_seconds"),
                 count("*").alias("events_count"),
+                concat_ws(",", collect_set("repo_name")).alias("repos"),
             )
             .drop("session_id")
             .filter(col("session_duration_seconds") > 0)
@@ -153,7 +157,7 @@ class Transformer:
     def transform_watch_events(self, events_df: DataFrame) -> DataFrame:
         watch_events_df = events_df \
             .filter(col("type") == "WatchEvent") \
-            .drop("payload", "type")
+            .drop("payload")
 
         return watch_events_df
 
@@ -168,7 +172,7 @@ class Transformer:
                 "tag_name",
                 get_json_object(col("payload"), "$.tag_name")
             ) \
-            .drop("payload", "type")
+            .drop("payload")
 
         return release_events_df
 
@@ -179,7 +183,7 @@ class Transformer:
                 "ref",
                 get_json_object(col("payload"), "$.ref")
             ) \
-            .drop("payload", "type")
+            .drop("payload")
 
         return push_events_df
 
@@ -194,7 +198,7 @@ class Transformer:
                 "comment",
                 get_json_object(col("payload"), "$.comment.body")
             ) \
-            .drop("payload", "type")
+            .drop("payload")
 
         return pr_review_comment_events_df
 
@@ -223,7 +227,7 @@ class Transformer:
                     "'array<struct<name:string>>'), x -> x.name)"
                 )
             ) \
-            .drop("payload", "type")
+            .drop("payload")
         return pr_events_df
 
     def transform_member_events(self, events_df: DataFrame) -> DataFrame:
@@ -233,7 +237,7 @@ class Transformer:
                 "member",
                 get_json_object(col("payload"), "$.member.login")
             ) \
-            .drop("payload", "type")
+            .drop("payload")
 
         return member_events_df
 
@@ -262,7 +266,7 @@ class Transformer:
                     "'array<struct<login:string>>'), x -> x.login)"
                 )
             ) \
-            .drop("payload", "type")
+            .drop("payload")
 
         return issue_events_df
 
@@ -273,7 +277,7 @@ class Transformer:
                 "title",
                 get_json_object(col("payload"), "$.issue.title")
             ) \
-            .drop("payload", "type")
+            .drop("payload")
 
         return issue_comment_events_df
 
@@ -287,7 +291,7 @@ class Transformer:
                     "'array<struct<page_name:string>>'), x -> x.page_name)"
                 )
             ) \
-            .drop("payload", "type")
+            .drop("payload")
         return gollum_events_df
 
     def transform_fork_events(self, events_df: DataFrame) -> DataFrame:
@@ -297,7 +301,7 @@ class Transformer:
                 "forked_repo_name",
                 get_json_object(col("payload"), "$.forkee.full_name")
             ) \
-            .drop("payload", "type")
+            .drop("payload")
 
         return fork_events_df
 
@@ -320,7 +324,7 @@ class Transformer:
                 "locked",
                 get_json_object(col("payload"), "$.discussion.locked").cast("boolean")
             ) \
-            .drop("payload", "type")
+            .drop("payload")
 
         return discussion_events_df
 
@@ -335,7 +339,7 @@ class Transformer:
                 "ref",
                 get_json_object(col("payload"), "$.ref")
             ) \
-            .drop("payload", "type")
+            .drop("payload")
 
         return create_events_df
 
@@ -346,7 +350,7 @@ class Transformer:
                 "comment",
                 get_json_object(col("payload"), "$.comment.body")
             ) \
-            .drop("payload", "type")
+            .drop("payload")
 
         return commit_comment_events_df
 
