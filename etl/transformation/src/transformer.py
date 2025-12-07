@@ -6,6 +6,8 @@ from pyspark.sql.functions import (
     count,
     current_timestamp,
     explode,
+    expr,
+    get_json_object,
     lag,
 )
 from pyspark.sql.functions import max as spark_max
@@ -70,7 +72,6 @@ class Transformer:
         return actors_df
 
     def transform_repos(self, repos_df: DataFrame) -> DataFrame:
-
         repos_df = repos_df \
             .withColumnRenamed("nameWithOwner", "name_with_owner") \
             .withColumnRenamed("isPrivate", "is_private") \
@@ -101,7 +102,6 @@ class Transformer:
         return repos_df
 
     def transform_sessions(self, events_df: DataFrame) -> DataFrame:
-
         window_spec = Window \
             .partitionBy("actor_login") \
             .orderBy("event_time")
@@ -150,10 +150,203 @@ class Transformer:
         )
         return df_sessions
 
+    def transform_watch_events(self, events_df: DataFrame) -> DataFrame:
+        watch_events_df = events_df \
+            .filter(col("type") == "WatchEvent") \
+            .drop("payload", "type")
+
+        return watch_events_df
+
+    def transform_release_events(self, events_df: DataFrame) -> DataFrame:
+        release_events_df = events_df \
+            .filter(col("type") == "ReleaseEvent") \
+            .withColumn(
+                "target_commitish",
+                get_json_object(col("payload"), "$.target_commitish")
+            ) \
+            .withColumn(
+                "tag_name",
+                get_json_object(col("payload"), "$.tag_name")
+            ) \
+            .drop("payload", "type")
+
+        return release_events_df
+
+    def transform_push_events(self, events_df: DataFrame) -> DataFrame:
+        push_events_df = events_df \
+            .filter(col("type") == "PushEvent") \
+            .withColumn(
+                "ref",
+                get_json_object(col("payload"), "$.ref")
+            ) \
+            .drop("payload", "type")
+
+        return push_events_df
+
+    def transform_pull_request_review_comment_events(self, events_df: DataFrame) -> DataFrame:
+        pr_review_comment_events_df = events_df \
+            .filter(col("type") == "PullRequestReviewCommentEvent") \
+            .withColumn(
+                "number",
+                get_json_object(col("payload"), "$.pull_request.number")
+            ) \
+            .withColumn(
+                "comment",
+                get_json_object(col("payload"), "$.comment.body")
+            ) \
+            .drop("payload", "type")
+
+        return pr_review_comment_events_df
+
+    def transform_pull_request_events(self, events_df: DataFrame) -> DataFrame:
+        pr_events_df = events_df \
+            .filter(col("type") == "PullRequestEvent") \
+            .withColumn(
+                "action",
+                get_json_object(col("payload"), "$.action")
+            ) \
+            .withColumn(
+                "number",
+                get_json_object(col("payload"), "$.number")
+            ) \
+            .withColumn(
+                "assignees",
+                expr(
+                    "transform(from_json(get_json_object(payload, '$.pull_request.assignees'), "
+                    "'array<struct<login:string>>'), x -> x.login)"
+                )
+            ) \
+            .withColumn(
+                "labels",
+                expr(
+                    "transform(from_json(get_json_object(payload, '$.pull_request.labels'), "
+                    "'array<struct<name:string>>'), x -> x.name)"
+                )
+            ) \
+            .drop("payload", "type")
+        return pr_events_df
+
+    def transform_member_events(self, events_df: DataFrame) -> DataFrame:
+        member_events_df = events_df \
+            .filter(col("type") == "MemberEvent") \
+            .withColumn(
+                "member",
+                get_json_object(col("payload"), "$.member.login")
+            ) \
+            .drop("payload", "type")
+
+        return member_events_df
+
+    def transform_issue_events(self, events_df: DataFrame) -> DataFrame:
+        issue_events_df = events_df \
+            .filter(col("type") == "IssuesEvent") \
+            .withColumn(
+                "title",
+                get_json_object(col("payload"), "$.issue.title")
+            ) \
+            .withColumn(
+                "action",
+                get_json_object(col("payload"), "$.action")
+            ) \
+            .withColumn(
+                "labels",
+                expr(
+                    "transform(from_json(get_json_object(payload, '$.issue.labels'), "
+                    "'array<struct<name:string>>'), x -> x.name)"
+                )
+            ) \
+            .withColumn(
+                "assignees",
+                expr(
+                    "transform(from_json(get_json_object(payload, '$.issue.assignees'), "
+                    "'array<struct<login:string>>'), x -> x.login)"
+                )
+            ) \
+            .drop("payload", "type")
+
+        return issue_events_df
+
+    def transform_issue_comment_events(self, events_df: DataFrame) -> DataFrame:
+        issue_comment_events_df = events_df \
+            .filter(col("type") == "IssueCommentEvent") \
+            .withColumn(
+                "title",
+                get_json_object(col("payload"), "$.issue.title")
+            ) \
+            .drop("payload", "type")
+
+        return issue_comment_events_df
+
+    def transform_gollum_events(self, events_df: DataFrame) -> DataFrame:
+        gollum_events_df = events_df \
+            .filter(col("type") == "GollumEvent") \
+            .withColumn(
+                "page_titles",
+                expr(
+                    "transform(from_json(get_json_object(payload, '$.pages'), "
+                    "'array<struct<page_name:string>>'), x -> x.page_name)"
+                )
+            ) \
+            .drop("payload", "type")
+        return gollum_events_df
+
+    def transform_fork_events(self, events_df: DataFrame) -> DataFrame:
+        fork_events_df = events_df \
+            .filter(col("type") == "ForkEvent") \
+            .withColumn(
+                "forked_repo_name",
+                get_json_object(col("payload"), "$.forkee.full_name")
+            ) \
+            .drop("payload", "type")
+
+        return fork_events_df
+
+    def transform_discussion_events(self, events_df: DataFrame) -> DataFrame:
+        discussion_events_df = events_df \
+            .filter(col("type") == "DiscussionEvent") \
+            .withColumn(
+                "title",
+                get_json_object(col("payload"), "$.discussion.title")
+            ) \
+            .withColumn(
+                "state",
+                get_json_object(col("payload"), "$.discussion.state")
+            ) \
+            .withColumn(
+                "comments_count",
+                get_json_object(col("payload"), "$.discussion.comments")
+            ) \
+            .withColumn(
+                "locked",
+                get_json_object(col("payload"), "$.discussion.locked").cast("boolean")
+            ) \
+            .drop("payload", "type")
+
+        return discussion_events_df
+
+    def transform_create_events(self, events_df: DataFrame) -> DataFrame:
+        create_events_df = events_df \
+            .filter(col("type") == "CreateEvent") \
+            .withColumn(
+                "ref_type",
+                get_json_object(col("payload"), "$.ref_type")
+            ) \
+            .withColumn(
+                "ref",
+                get_json_object(col("payload"), "$.ref")
+            ) \
+            .drop("payload", "type")
+
+        return create_events_df
+
     def transform_commit_comment_events(self, events_df: DataFrame) -> DataFrame:
         commit_comment_events_df = events_df \
             .filter(col("type") == "CommitCommentEvent") \
-            .withColumn("comment", col("payload").getItem("comment").getItem("body")) \
+            .withColumn(
+                "comment",
+                get_json_object(col("payload"), "$.comment.body")
+            ) \
+            .drop("payload", "type")
 
         return commit_comment_events_df
 
@@ -162,8 +355,7 @@ class Transformer:
             .dropna(subset=["type", "actor.login", "repo.name", "created_at"]) \
             .withColumn("actor_login", col("actor.login")) \
             .withColumn("repo_name", col("repo.name")) \
-            .withColumnRenamed("created_at", "event_time") \
-            .drop("id", "ingested_at", "actor", "repo", "org")
+            .drop("id", "ingested_at", "actor", "repo", "org", "public")
 
         return events_df
 

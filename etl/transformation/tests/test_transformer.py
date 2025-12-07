@@ -402,7 +402,7 @@ class TransformerTests(unittest.TestCase):
 
         self.assertEqual(result.actor_login, "octocat")
         self.assertEqual(result.repo_name, "octocat/Hello-World")
-        self.assertEqual(result.event_time, datetime(2025, 11, 1, 12, 0, 0))
+        self.assertEqual(result.created_at, datetime(2025, 11, 1, 12, 0, 0))
         self.assertNotIn("id", df_transformed.columns)
         self.assertNotIn("actor", df_transformed.columns)
         self.assertNotIn("repo", df_transformed.columns)

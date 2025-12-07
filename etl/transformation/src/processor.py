@@ -1,3 +1,4 @@
+import logging
 from datetime import date
 from typing import List
 
@@ -5,6 +6,8 @@ from pyspark.sql import DataFrame, SparkSession
 from src.schema import ACTORS_SCHEMA, GITHUB_EVENTS_SCHEMA, REPOS_SCHEMA
 from src.transformer import Transformer
 from src.utils import build_paths
+
+logger = logging.getLogger(__name__)
 
 
 class DataProcessor:
@@ -112,9 +115,95 @@ class DataProcessor:
         )
 
     def _process_events(self, events_df: DataFrame) -> None:
-        commit_comment_events = events_df.transform(self.transformer.transform_commit_comment_events)
+        fact_commit_comment_events_df = events_df.transform(self.transformer.transform_commit_comment_events)
+        fact_create_events_df = events_df.transform(self.transformer.transform_create_events)
+        fact_discussion_events_df = events_df.transform(self.transformer.transform_discussion_events)
+        fact_fork_events_df = events_df.transform(self.transformer.transform_fork_events)
+        fact_gollum_events_df = events_df.transform(self.transformer.transform_gollum_events)
+        fact_issue_comment_events_df = events_df.transform(self.transformer.transform_issue_comment_events)
+        fact_issue_events_df = events_df.transform(self.transformer.transform_issue_events)
+        fact_member_events_df = events_df.transform(self.transformer.transform_member_events)
+        fact_pull_request_events_df = events_df.transform(self.transformer.transform_pull_request_events)
+        fact_pull_request_review_comment_events_df = events_df.transform(
+            self.transformer.transform_pull_request_review_comment_events
+        )
+        fact_push_events_df = events_df.transform(self.transformer.transform_push_events)
+        fact_release_events_df = events_df.transform(self.transformer.transform_release_events)
+        fact_watch_events_df = events_df.transform(self.transformer.transform_watch_events)
 
-        commit_comment_events.show(truncate=False, n=5)
+        event_mappings = [
+            (
+                fact_commit_comment_events_df,
+                "fact_commit_comment_events",
+                ["actor_login", "repo_name", "created_at"],
+            ),
+            (
+                fact_create_events_df,
+                "fact_create_events",
+                ["actor_login", "repo_name", "created_at", "ref_type", "ref"],
+            ),
+            (
+                fact_discussion_events_df,
+                "fact_discussion_events",
+                ["actor_login", "repo_name", "created_at", "title"],
+            ),
+            (fact_fork_events_df, "fact_fork_events", ["actor_login", "repo_name", "created_at"]),
+            (
+                fact_gollum_events_df,
+                "fact_gollum_events",
+                ["actor_login", "repo_name", "created_at", "page_titles"],
+            ),
+            (
+                fact_issue_comment_events_df,
+                "fact_issue_comment_events",
+                ["actor_login", "repo_name", "created_at", "title"],
+            ),
+            (fact_issue_events_df, "fact_issue_events", ["actor_login", "repo_name", "created_at", "title"]),
+            (
+                fact_member_events_df,
+                "fact_member_events",
+                ["actor_login", "repo_name", "created_at", "member"],
+            ),
+            (
+                fact_pull_request_events_df,
+                "fact_pull_request_events",
+                ["actor_login", "repo_name", "created_at", "number"],
+            ),
+            (
+                fact_pull_request_review_comment_events_df,
+                "fact_pull_request_review_comment_events",
+                ["actor_login", "repo_name", "created_at", "number", "comment"],
+            ),
+            (fact_push_events_df, "fact_push_events", ["actor_login", "repo_name", "created_at", "ref"]),
+            (fact_release_events_df, "fact_release_events", ["actor_login", "repo_name", "created_at"]),
+            (fact_watch_events_df, "fact_watch_events", ["actor_login", "repo_name", "created_at"]),
+        ]
+
+        for df, table, merge_keys in event_mappings:
+            logger.info(f"Appending to table: {table}")
+            df.createOrReplaceTempView("staging_events")
+
+            merge_condition = " AND ".join([f"target.{key} = source.{key}" for key in merge_keys])
+            columns = ", ".join(df.columns)
+            values = ", ".join([f"source.{col}" for col in df.columns])
+
+            self.spark_session.sql(
+                f"""
+                    MERGE INTO
+                        ggazers.silver.{table} AS target
+                    USING
+                        staging_events AS source
+                    ON
+                        {merge_condition}
+                    WHEN NOT MATCHED THEN
+                        INSERT (
+                            {columns}
+                        )
+                        VALUES (
+                            {values}
+                        )
+                """
+            )
 
     def _process_sessions(self, events_df: DataFrame) -> None:
         sessions_df = self.transformer.transform_sessions(events_df)
