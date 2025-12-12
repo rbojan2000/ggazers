@@ -21,16 +21,16 @@ STATUS_SCHEMA = StructType(
 ACTORS_SCHEMA = StructType(
     [
         StructField("__typename", StringType(), False),
-        StructField("ingested_at", LongType(), False),
         StructField("id", StringType(), False),
         StructField("login", StringType(), False),
+        StructField("ingested_at", LongType(), False),
         StructField("avatarUrl", StringType(), True),
         StructField("name", StringType(), True),
         StructField("email", StringType(), True),
+        StructField("websiteUrl", StringType(), True),
         StructField("bio", StringType(), True),
         StructField("company", StringType(), True),
         StructField("location", StringType(), True),
-        StructField("websiteUrl", StringType(), True),
         StructField("twitterUsername", StringType(), True),
         StructField("createdAt", TimestampType(), True),
         StructField("followers", COUNT_SCHEMA, True),

@@ -23,6 +23,7 @@ class DataProcessor:
             .config(
                 "spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
             )
+            .config("spark.sql.shuffle.partitions", "8")  # delete this one
             .config("spark.sql.catalog.ggazers", "org.apache.iceberg.spark.SparkCatalog")
             .config("spark.sql.catalog.ggazers.type", "hadoop")
             .config("spark.sql.catalog.ggazers.warehouse", DATA_PATH)
@@ -52,10 +53,15 @@ class DataProcessor:
                     target.login = source.login
                 WHEN MATCHED THEN
                     UPDATE SET
-                        login           = target.login,
                         type            = source.type,
+                        login           = target.login,
                         avatar_url      = source.avatar_url,
+                        name            = source.name,
+                        email           = source.email,
                         website_url     = source.website_url,
+                        description     = source.description,
+                        location        = source.location,
+                        company         = source.company,
                         created_at      = source.created_at,
                         twitter_username = source.twitter_username,
                         followers_count = source.followers_count,
@@ -66,15 +72,17 @@ class DataProcessor:
                         updated_at      = source.updated_at
                 WHEN NOT MATCHED THEN
                     INSERT (
-                        login, type, avatar_url, website_url, created_at,
+                        login, name, type, email, description, location,
+                        company, avatar_url, website_url, created_at,
                         twitter_username, followers_count, following_count,
                         repositories_count, gists_count, status_message, updated_at
                     )
                     VALUES (
-                        source.login, source.type, source.avatar_url, source.website_url,
-                        source.created_at, source.twitter_username, source.followers_count,
-                        source.following_count, source.repositories_count, source.gists_count,
-                        source.status_message, source.updated_at
+                        source.login, source.name, source.type, source.email,
+                        source.description, source.location, source.company,
+                        source.avatar_url, source.website_url, source.created_at,
+                        source.twitter_username, source.followers_count, source.following_count,
+                        source.repositories_count, source.gists_count, source.status_message, source.updated_at
                     )
             """
         )

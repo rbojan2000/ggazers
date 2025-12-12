@@ -9,3 +9,4 @@ data/
 .env
 *.log
 .pytest_cache/
+metastore_db/

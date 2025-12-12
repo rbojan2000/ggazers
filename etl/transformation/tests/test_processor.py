@@ -42,16 +42,21 @@ class DataProcessorTests(unittest.TestCase):
         cls.spark.sql(
             """
             CREATE TABLE IF NOT EXISTS ggazers.silver.dim_actor (
-                login STRING NOT NULL,
                 type STRING,
+                login STRING NOT NULL,
                 avatar_url STRING,
+                name STRING,
+                email STRING,
                 website_url STRING,
+                description STRING,
+                company STRING,
+                location STRING,
                 created_at TIMESTAMP,
-                twitter_username STRING,
                 followers_count BIGINT,
                 following_count BIGINT,
                 repositories_count BIGINT,
                 gists_count BIGINT,
+                twitter_username STRING,
                 status_message STRING,
                 updated_at TIMESTAMP
             ) USING ICEBERG
@@ -151,21 +156,27 @@ class DataProcessorTests(unittest.TestCase):
     @patch("src.processor.build_paths")
     def test_process_actors_insert(self, mock_build_paths):
         """Test inserting new actors"""
+
         test_data = [
             {
-                "id": "123",
-                "login": "octocat",
                 "__typename": "User",
-                "avatarUrl": "https://avatar.url",
-                "websiteUrl": "https://website.url",
-                "createdAt": "2020-01-01T00:00:00Z",
-                "twitterUsername": "octocat",
+                "id": "U_kgDOCg9nVQ",
+                "login": "octocat",
+                "avatarUrl": "https://avatars.githubusercontent.com/u/168781653?v=4",
+                "name": "",
+                "email": "",
+                "bio": "",
+                "company": "",
+                "location": "",
+                "websiteUrl": "",
+                "createdAt": "2024-05-02T20:55:42Z",
+                "twitterUsername": "",
                 "followers": {"totalCount": 100},
-                "following": {"totalCount": 50},
-                "repositories": {"totalCount": 25},
-                "gists": {"totalCount": 10},
-                "status": {"message": "Working on projects"},
-                "ingested_at": "2025-11-01T00:00:00Z",
+                "following": {"totalCount": 0},
+                "repositories": {"totalCount": 1},
+                "gists": {"totalCount": 0},
+                "status": {"message": "", "emoji": ":astronaut:"},
+                "ingested_at": 1764290997,
             }
         ]
 
@@ -185,9 +196,9 @@ class DataProcessorTests(unittest.TestCase):
         self.spark.sql(
             """
             INSERT INTO ggazers.silver.dim_actor VALUES (
-                'octocat', 'User', 'https://old.url', NULL,
-                CAST('2020-01-01' AS TIMESTAMP), NULL,
-                50, 25, 10, 5, NULL, CURRENT_TIMESTAMP()
+                'User', 'octocat', 'https://old.url', NULL, NULL, NULL,
+                NULL, NULL, NULL, CAST('2020-01-01' AS TIMESTAMP),
+                50, 25, 10, 5, NULL, NULL, CURRENT_TIMESTAMP()
             )
             """
         )

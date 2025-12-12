@@ -50,6 +50,7 @@ class Transformer:
         actors_df = actors_df \
             .dropna(subset=["login"]) \
             .withColumnRenamed("__typename", "type") \
+            .withColumnRenamed("bio", "description") \
             .withColumnRenamed("avatarUrl", "avatar_url") \
             .withColumnRenamed("websiteUrl", "website_url") \
             .withColumnRenamed("createdAt", "created_at") \
