@@ -53,6 +53,13 @@ class DataProcessor:
         logger.info("User level stats written to DB.")
         return user_level_stats
 
+    def calculate_org_level_stats(self, period_start_date: str, period_end_date: str) -> DataFrame:
+        org_level_stats = self.analyzer.calculate_org_level_stats(period_start_date, period_end_date)
+        self._write_to_postgres(org_level_stats, table_name="org_level_stats")
+
+        logger.info("Org level stats written to DB.")
+        return org_level_stats
+
     def _write_to_postgres(
         self,
         df: DataFrame,

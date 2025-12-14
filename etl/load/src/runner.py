@@ -14,7 +14,7 @@ processor = DataProcessor()
 @click.option(
     "--dataset",
     required=True,
-    type=click.Choice(["repo_level_stats", "user_level_stats"], case_sensitive=False),
+    type=click.Choice(["repo_level_stats", "user_level_stats", "org_level_stats"], case_sensitive=False),
     help="Specify the dataset to transform",
 )
 def run(period_start_date: str, period_end_date: str, dataset: str) -> None:
@@ -26,6 +26,8 @@ def run(period_start_date: str, period_end_date: str, dataset: str) -> None:
             processor.calculate_repo_level_stats(period_start_date, period_end_date)
         case "user_level_stats":
             processor.calculate_user_level_stats(period_start_date, period_end_date)
+        case "org_level_stats":
+            processor.calculate_org_level_stats(period_start_date, period_end_date)
 
         case _:
             raise ValueError(f"Unknown dataset: {dataset}")
