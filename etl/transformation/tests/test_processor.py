@@ -1,6 +1,7 @@
 import json
 import shutil
 import tempfile
+import time
 import unittest
 from datetime import date
 from pathlib import Path
@@ -106,7 +107,6 @@ class DataProcessorTests(unittest.TestCase):
             cls.spark.sql("DROP TABLE IF EXISTS ggazers.silver.dim_coding_session")
             cls.spark.sql("DROP NAMESPACE IF EXISTS ggazers.silver")
             cls.spark.stop()
-            import time
 
             time.sleep(1)
 

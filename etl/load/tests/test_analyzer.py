@@ -1,6 +1,9 @@
+import shutil
+import tempfile
+import time
 import unittest
+from pathlib import Path
 
-from paths import DATA_PATH
 from pyspark.sql import SparkSession
 from src.analyzer import Analyzer
 
@@ -9,18 +12,23 @@ class AnalyzerTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        cls.temp_dir = tempfile.mkdtemp()
+        cls.warehouse_path = Path(cls.temp_dir) / "warehouse"
+        cls.warehouse_path.mkdir()
         cls.spark = (
             SparkSession.builder.master("local[*]")
             .appName("AnalyzerTest")
             .config("spark.ui.enabled", "false")
             .config("spark.ui.showConsoleProgress", "false")
-            .config("spark.jars.packages", "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.6.0")
-            .config(
-                "spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
-            )
+            .config("spark.sql.warehouse.dir", str(cls.warehouse_path))
             .config("spark.sql.catalog.ggazers", "org.apache.iceberg.spark.SparkCatalog")
             .config("spark.sql.catalog.ggazers.type", "hadoop")
-            .config("spark.sql.catalog.ggazers.warehouse", DATA_PATH)
+            .config("spark.sql.catalog.ggazers.warehouse", str(cls.warehouse_path))
+            .config("spark.jars.packages", "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.6.0")
+            .config(
+                "spark.sql.extensions",
+                "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions",
+            )
             .getOrCreate()
         )
         cls.spark.sparkContext.setLogLevel("ERROR")
@@ -55,6 +63,11 @@ class AnalyzerTests(unittest.TestCase):
                 cls.spark.sql(f"DROP TABLE IF EXISTS ggazers.silver.{table}")
             cls.spark.sql("DROP NAMESPACE IF EXISTS ggazers.silver")
             cls.spark.stop()
+
+        time.sleep(1)
+
+        if Path(cls.temp_dir).exists():
+            shutil.rmtree(cls.temp_dir, ignore_errors=True)
 
     @classmethod
     def _create_tables(cls, spark):

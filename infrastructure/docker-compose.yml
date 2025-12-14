@@ -1,25 +1,52 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
     container_name: ggazers-postgres
     environment:
-      POSTGRES_USER: ggazers
-      POSTGRES_PASSWORD: ggazers123
-      POSTGRES_DB: ggazers
+      POSTGRES_USER: ${POSTGRES_USER:-ggazers}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ggazers123}
+      POSTGRES_DB: ${POSTGRES_DB:-ggazers}
+      POSTGRES_MULTIPLE_DATABASES: superset
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./sql/init:/docker-entrypoint-initdb.d
+      - ./init-superset-db.sh:/docker-entrypoint-initdb.d/init-superset-db.sh
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ggazers"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ggazers}"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
 
+  superset:
+    build:
+          context: .
+          dockerfile: Dockerfile.superset
+    container_name: ggazers-superset
+    environment:
+      - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY:-AsAd@$#afgt4567!}
+      - SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://${POSTGRES_USER:-ggazers}:${POSTGRES_PASSWORD:-ggazers123}@postgres:5432/superset
+    ports:
+      - "${SUPERSET_PORT:-8088}:8088"
+    volumes:
+      - superset_home:/app/superset_home
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      bash -c "
+      pip install psycopg2-binary &&
+      superset db upgrade &&
+      superset fab create-admin --username ${SUPERSET_ADMIN_USER:-admin} --firstname ${SUPERSET_ADMIN_FIRSTNAME:-Admin} --lastname ${SUPERSET_ADMIN_LASTNAME:-User} --email ${SUPERSET_ADMIN_EMAIL:-admin@superset.com} --password ${SUPERSET_ADMIN_PASSWORD:-admin} &&
+      superset init &&
+      superset run -h 0.0.0.0 -p 8088 --with-threads --reload --debugger
+      "
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+    driver: local
+  superset_home:
     driver: local

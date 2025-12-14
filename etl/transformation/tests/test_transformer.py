@@ -2,6 +2,7 @@ import unittest
 from datetime import datetime
 
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import lit, when
 from src.schema import ACTORS_SCHEMA, GITHUB_EVENTS_SCHEMA, REPOS_SCHEMA
 from src.transformer import Transformer
 
@@ -410,7 +411,6 @@ class TransformerTests(unittest.TestCase):
 
     def test_transform_events_null_filtering(self):
         """Test that events with null required fields are filtered out"""
-        from pyspark.sql.functions import lit, when
 
         data = [
             {

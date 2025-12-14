@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 
 class DataProcessor:
     def __init__(self) -> None:
-        self.spark_session = None
-        self.analyzer = None
+        self.spark_session: SparkSession = None
+        self.analyzer: Analyzer = None
 
     def init_spark_session(self) -> None:
         self.spark_session: SparkSession = (
@@ -45,6 +45,13 @@ class DataProcessor:
 
         logger.info("Repo level stats written to DB.")
         return repo_level_stats
+
+    def calculate_user_level_stats(self, period_start_date: str, period_end_date: str) -> DataFrame:
+        user_level_stats = self.analyzer.calculate_user_level_stats(period_start_date, period_end_date)
+        self._write_to_postgres(user_level_stats, table_name="user_level_stats")
+
+        logger.info("User level stats written to DB.")
+        return user_level_stats
 
     def _write_to_postgres(
         self,

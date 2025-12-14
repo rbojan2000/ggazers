@@ -23,7 +23,7 @@ class DataProcessor:
             .config(
                 "spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
             )
-            .config("spark.sql.shuffle.partitions", "8")  # delete this one
+            .config("spark.sql.shuffle.partitions", "5")
             .config("spark.sql.catalog.ggazers", "org.apache.iceberg.spark.SparkCatalog")
             .config("spark.sql.catalog.ggazers.type", "hadoop")
             .config("spark.sql.catalog.ggazers.warehouse", DATA_PATH)

@@ -4,7 +4,7 @@ from pyspark.sql.dataframe import DataFrame
 
 class Analyzer:
     def __init__(self, spark_session: SparkSession):
-        self.spark_session = spark_session
+        self.spark_session: SparkSession = spark_session
 
     def calculate_repo_level_stats(self, period_start_date: str, period_end_date: str) -> DataFrame:
         repo_level_stats = self.spark_session.sql(
@@ -302,7 +302,7 @@ class Analyzer:
                 GROUP BY
                     se.repo_name
             ),
-            ggazer_stats AS (
+            ggazer_score AS (
                 SELECT
                     ri.name_with_owner AS repo_name,
                     ri.primary_language,
@@ -346,7 +346,7 @@ class Analyzer:
                     END AS activity_label,
                     RANK() OVER (ORDER BY ggazer_score DESC) AS ggazer_rank
                 FROM
-                    ggazer_stats
+                    ggazer_score
             )
             SELECT
                 ri.*,
@@ -442,7 +442,7 @@ class Analyzer:
             ON
                 ri.name_with_owner = sn.repo_name
             LEFT JOIN
-                ggazer_stats gs
+                ggazer_score gs
             ON
                 ri.name_with_owner = gs.repo_name
             LEFT JOIN
@@ -453,3 +453,239 @@ class Analyzer:
         )
 
         return repo_level_stats
+
+    def calculate_user_level_stats(self, period_start_date: str, period_end_date: str) -> DataFrame:
+        user_level_stats = self.spark_session.sql(
+            f"""
+                WITH users_info AS (
+                    SELECT
+                        DATE('{period_start_date}') AS period_start_date,
+                        DATE('{period_end_date}') AS period_end_date,
+                        a.login,
+                        a.name,
+                        a.avatar_url,
+                        a.email,
+                        a.website_url,
+                        a.description,
+                        a.company,
+                        a.location
+                    FROM
+                        ggazers.silver.dim_actor a
+                    WHERE
+                        type = 'User'
+                ),
+                branches_num AS (
+                    SELECT
+                        pe.actor_login,
+                        COUNT(DISTINCT pe.ref) AS branches_count
+                    FROM
+                        ggazers.silver.fact_create_events pe
+                    WHERE
+                        pe.ref_type = 'branch' AND
+                        pe.created_at BETWEEN DATE('{period_start_date}') AND DATE('{period_end_date}')
+                    GROUP BY
+                        pe.actor_login
+                ),
+                tags_num AS (
+                    SELECT
+                        pe.actor_login,
+                        COUNT(DISTINCT pe.ref) AS tags_count
+                    FROM
+                        ggazers.silver.fact_create_events pe
+                    WHERE
+                        pe.ref_type = 'tag' AND
+                        pe.created_at BETWEEN DATE('{period_start_date}') AND DATE('{period_end_date}')
+                    GROUP BY
+                        pe.actor_login
+                ),
+                coding_sessions_num AS (
+                    SELECT
+                        cs.actor_login,
+                        COUNT(*) AS sessions_count
+                    FROM
+                        ggazers.silver.dim_coding_session cs
+                    WHERE
+                        cs.session_start BETWEEN DATE('{period_start_date}') AND DATE('{period_end_date}')
+                    GROUP BY
+                        cs.actor_login
+                ),
+                most_sessions_repo AS (
+                    SELECT
+                        actor_login,
+                        repo_name,
+                        sessions_count_per_repo
+                    FROM (
+                        SELECT
+                            actor_login,
+                            exploded_repo AS repo_name,
+                            COUNT(*) AS sessions_count_per_repo,
+                            ROW_NUMBER() OVER (PARTITION BY actor_login ORDER BY COUNT(*) DESC) AS rn
+                        FROM
+                            ggazers.silver.dim_coding_session
+                        LATERAL VIEW explode(split(repos, ',')) AS exploded_repo
+                        WHERE
+                            session_start BETWEEN DATE('{period_start_date}') AND DATE('{period_end_date}')
+                        GROUP BY
+                            actor_login, exploded_repo
+                    )
+                    WHERE
+                        rn = 1
+                ),
+                commits_num AS (
+                    SELECT
+                        pe.actor_login,
+                        COUNT(*) AS commit_count
+                    FROM
+                        ggazers.silver.fact_push_events pe
+                    WHERE
+                        pe.created_at BETWEEN DATE('{period_start_date}') AND DATE('{period_end_date}')
+                    GROUP BY
+                        pe.actor_login
+                ),
+                most_commited_org AS (
+                    SELECT
+                        actor_login,
+                        owner,
+                        company,
+                        type,
+                        commit_count
+                    FROM (
+                        SELECT
+                            pe.actor_login,
+                            split(pe.repo_name, '/')[0] AS owner,
+                            dim_actor.company,
+                            dim_actor.type,
+                            COUNT(*) AS commit_count,
+                            ROW_NUMBER() OVER (PARTITION BY pe.actor_login ORDER BY COUNT(*) DESC) AS rn
+                        FROM
+                            ggazers.silver.fact_push_events pe
+                        JOIN
+                            ggazers.silver.dim_actor AS dim_actor
+                        ON
+                            split(pe.repo_name, '/')[0] = dim_actor.login
+                        WHERE
+                            pe.actor_login != split(pe.repo_name, '/')[0] AND
+                            dim_actor.type = 'Organization'
+                        GROUP BY
+                            pe.actor_login, split(pe.repo_name, '/')[0], dim_actor.company, dim_actor.type
+                    ) ranked
+                    WHERE rn = 1
+                ),
+                longest_coding_session AS (
+                    SELECT
+                        cs.actor_login,
+                        MAX(
+                            UNIX_TIMESTAMP(cs.session_end) - UNIX_TIMESTAMP(cs.session_start)
+                        ) AS longest_session_seconds
+                    FROM
+                        ggazers.silver.dim_coding_session cs
+                    WHERE
+                        cs.session_start BETWEEN DATE('{period_start_date}') AND DATE('{period_end_date}')
+                    GROUP BY
+                        cs.actor_login
+                ),
+                opened_pull_requests_num AS (
+                    SELECT
+                        pre.actor_login,
+                        COUNT(*) AS opened_pull_requests_count
+                    FROM
+                        ggazers.silver.fact_pull_request_events pre
+                    WHERE
+                        pre.action = 'opened' AND
+                        pre.created_at BETWEEN DATE('{period_start_date}') AND DATE('{period_end_date}')
+                    GROUP BY
+                        pre.actor_login
+                ),
+                ggazer_score AS (
+                    SELECT
+                        ui.login AS actor_login,
+                        ROUND(
+                            (COALESCE(bn.branches_count, 0) * 2) +
+                            (COALESCE(tn.tags_count, 0) * 2) +
+                            (COALESCE(csn.sessions_count, 0) * 3) +
+                            (COALESCE(cn.commit_count, 0) * 5) +
+                            (COALESCE(oprn.opened_pull_requests_count, 0) * 4)
+                        , 2) AS ggazers_score
+                    FROM
+                        users_info ui
+                    LEFT JOIN branches_num bn ON ui.login = bn.actor_login
+                    LEFT JOIN tags_num tn ON ui.login = tn.actor_login
+                    LEFT JOIN coding_sessions_num csn ON ui.login = csn.actor_login
+                    LEFT JOIN commits_num cn ON ui.login = cn.actor_login
+                    LEFT JOIN opened_pull_requests_num oprn ON ui.login = oprn.actor_login
+                ),
+                ggazer_rankings AS (
+                    SELECT
+                        actor_login,
+                        ggazers_score,
+                        CASE
+                            WHEN ggazers_score >= 100 THEN 'Highly Active'
+                            WHEN ggazers_score >= 50 THEN 'Active'
+                            WHEN ggazers_score >= 20 THEN 'Moderate'
+                            WHEN ggazers_score >= 10 THEN 'Low'
+                            ELSE 'Inactive'
+                        END AS activity_label,
+                        RANK() OVER (ORDER BY ggazers_score DESC) AS ggazer_rank
+                    FROM
+                        ggazer_score
+                )
+                SELECT
+                    ui.*,
+                    COALESCE(bn.branches_count, 0) AS branches_count,
+                    COALESCE(tn.tags_count, 0) AS tags_count,
+                    COALESCE(csn.sessions_count, 0) AS coding_sessions_count,
+                    COALESCE(msr.repo_name, 'N/A') AS most_sessions_repo,
+                    COALESCE(msr.sessions_count_per_repo, 0) AS most_sessions_repo_sessions_count,
+                    COALESCE(cn.commit_count, 0) AS commits_count,
+                    COALESCE(mco.owner, 'N/A') AS most_commited_organization,
+                    lcs.longest_session_seconds AS longest_coding_session_seconds,
+                    COALESCE(oprn.opened_pull_requests_count, 0) AS opened_pull_requests_count,
+                    COALESCE(gs.ggazers_score, 0.0) AS ggazers_score,
+                    COALESCE(gr.activity_label, 'Inactive') AS activity_label,
+                    COALESCE(gr.ggazer_rank, 0) AS ggazer_rank
+                FROM
+                    users_info ui
+                LEFT JOIN
+                    branches_num bn
+                ON
+                    ui.login = bn.actor_login
+                LEFT JOIN
+                    tags_num tn
+                ON
+                    ui.login = tn.actor_login
+                LEFT JOIN
+                    coding_sessions_num csn
+                ON
+                    ui.login = csn.actor_login
+                LEFT JOIN
+                    most_sessions_repo msr
+                ON
+                    ui.login = msr.actor_login
+                LEFT JOIN
+                    commits_num cn
+                ON
+                    ui.login = cn.actor_login
+                LEFT JOIN
+                    most_commited_org mco
+                ON
+                    ui.login = mco.actor_login
+                LEFT JOIN
+                    longest_coding_session lcs
+                ON
+                    ui.login = lcs.actor_login
+                LEFT JOIN
+                    opened_pull_requests_num oprn
+                ON
+                    ui.login = oprn.actor_login
+                LEFT JOIN
+                    ggazer_score gs
+                ON
+                    ui.login = gs.actor_login
+                LEFT JOIN
+                    ggazer_rankings gr
+                ON
+                    ui.login = gr.actor_login
+            """
+        )
+
+        return user_level_stats
