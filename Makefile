@@ -5,10 +5,12 @@ black:
 		etl/transformation/src/ \
 		etl/transformation/tests/ \
 		etl/load/src/ \
-		etl/load/tests/
+		etl/load/tests/ \
+		stream-processing/producer/src/ \
+		stream-processing/producer/tests/
 
 isort:
-	isort --profile black etl/
+	isort --profile black etl/ stream-processing/
 
 flake:
 	flake8 --max-line-length=111 --ignore=E203 \
@@ -17,12 +19,25 @@ flake:
 		etl/transformation/src/ \
 		etl/transformation/tests/ \
 		etl/load/src/ \
-		etl/load/tests/
+		etl/load/tests/ \
+		stream-processing/producer/src/ \
+		stream-processing/producer/tests/
 
 tests:
 	pytest -v etl/ingestion/tests/ && \
 	pytest -v etl/transformation/tests/ && \
-	pytest -v etl/load/tests/
+	pytest -v etl/load/tests/ && \
+	pytest -v stream-processing/producer/tests/
+
+check-streams-formatting:
+	black --check \
+		stream-processing/producer/src/ \
+		stream-processing/producer/tests/ && \
+	isort --check --profile black \
+		stream-processing/ && \
+	flake8 --max-line-length=111 --ignore=E203 \
+		stream-processing/producer/src/ \
+		stream-processing/producer/tests/
 
 check-etl-formatting:
 	black --check \
@@ -40,6 +55,10 @@ check-etl-formatting:
 		etl/load/src/ \
 		etl/load/tests/
 
-run-ingestion:
-	cd etl/ingestion && \
-	python3 -m src.runner
+check-formatting: check-streams-formatting check-etl-formatting
+
+streams-infrastructure-up:
+	docker-compose -f infrastructure/streams.docker-compose.yml up
+
+streams-infrastructure-down:
+	docker-compose -f infrastructure/streams.docker-compose.yml down
