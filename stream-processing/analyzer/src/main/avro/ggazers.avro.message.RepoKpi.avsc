@@ -1,0 +1,17 @@
+{
+    "type": "record",
+    "name": "RepoKpi",
+    "namespace": "ggazers.avro.message",
+    "fields": [
+        { "name": "name_with_owner", "type": ["string", "null"] },
+        { "name": "name", "type": ["string", "null"] },
+        { "name": "owner", "type": ["string", "null"] },
+        { "name": "commits_count", "type": ["long", "null"] },
+        { "name": "contributors_count", "type": ["long", "null"] },
+        { "name": "best_contributor_login", "type": ["string", "null"] },
+        { "name": "committers_map", "type": ["null", {"type": "map", "values": "long"}], "default": null },
+        { "name": "ggazer_score", "type": ["null", "double"], "default": null },
+        { "name": "window_start_utc", "type": ["null", "string"], "default": null },
+        { "name": "window_end_utc", "type": ["null", "string"], "default": null }
+    ]
+}

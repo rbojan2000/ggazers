@@ -35,9 +35,11 @@ services:
       bash -c '
         echo Waiting for Kafka to be ready... &&
         cub kafka-ready -b broker:29092 1 20 &&
-        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --topic ggazers.github.events &&
-        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --config cleanup.policy=compact --topic  ggazers.github.organizations &&
+        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --topic ggazers.github.push_events &&
+        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --topic ggazers.github.release_events &&
+        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --topic ggazers.github.pr_events &&
         kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --config cleanup.policy=compact --topic ggazers.github.repos &&
+        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --config cleanup.policy=compact --topic ggazers.github.actors &&
         kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --topic ggazers.github.repo_kpi &&
         kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --topic ggazers.github.user_kpi &&
         kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --topic ggazers.github.organization_kpi &&

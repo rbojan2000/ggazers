@@ -44,5 +44,5 @@ jobs:
 
     - name: Run tests
       run: |
-        poetry run make tests
+        poetry run make etl-tests
 

@@ -1,0 +1,12 @@
+{
+    "type": "record",
+    "name": "OrganizationKpi",
+    "namespace": "ggazers.avro.message",
+    "fields": [
+        { "name": "organization_login", "type": ["string", "null"] },
+        { "name": "date", "type": ["string", "null"] },
+        { "name": "commits_count", "type": ["long", "null"] },
+        { "name": "repos_contributed_to_count", "type": ["long", "null"] },
+        { "name": "contributors_count", "type": ["long", "null"] }
+    ]
+}

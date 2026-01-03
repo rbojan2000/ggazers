@@ -1,0 +1,10 @@
+{
+  "type": "record",
+  "name": "EnrichedEvent",
+  "namespace": "ggazers.avro.message",
+  "fields": [
+        { "name": "event", "type": ["null", "PushEvent"], "default": null },
+        { "name": "repo", "type": ["null", "Repo"], "default": null },
+        { "name": "actor", "type": ["null", "Actor"], "default": null }
+  ]
+}

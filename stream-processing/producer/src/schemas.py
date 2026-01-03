@@ -5,7 +5,13 @@ from dataclasses_avroschema import AvroModel
 
 
 @dataclass
-class Actor(AvroModel):
+class GGazersAvroModel(AvroModel):
+    class Meta:
+        namespace = "ggazers.avro.message"
+
+
+@dataclass
+class Actor(GGazersAvroModel):
     login: str
     name: Optional[str]
     email: Optional[str]
@@ -17,8 +23,10 @@ class Actor(AvroModel):
 
 
 @dataclass
-class Repo(AvroModel):
+class Repo(GGazersAvroModel):
     name_with_owner: Optional[str]
+    owner: Optional[str]
+    name: Optional[str]
     description: Optional[str]
     created_at: Optional[str]
     disk_usage: Optional[int]
@@ -31,7 +39,7 @@ class Repo(AvroModel):
 
 
 @dataclass
-class GitHubEvent(AvroModel):
+class GitHubEvent(GGazersAvroModel):
     id: str
     actor_login: str
     repo_name: str
@@ -40,25 +48,25 @@ class GitHubEvent(AvroModel):
 
 
 @dataclass
-class PushEvent(AvroModel):
+class PushEvent(GGazersAvroModel):
     event: GitHubEvent
     ref: Optional[str]
 
 
 @dataclass
-class ReleaseEvent(AvroModel):
+class ReleaseEvent(GGazersAvroModel):
     event: GitHubEvent
     action: Optional[str]
     release_tag: Optional[str]
 
 
 @dataclass
-class PullRequestEvent(AvroModel):
+class PullRequestEvent(GGazersAvroModel):
     event: GitHubEvent
     action: Optional[str]
     pr_number: Optional[int]
 
 
 @dataclass
-class MessageKey(AvroModel):
+class MessageKey(GGazersAvroModel):
     key: str

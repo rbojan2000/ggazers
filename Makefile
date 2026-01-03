@@ -23,11 +23,15 @@ flake:
 		stream-processing/producer/src/ \
 		stream-processing/producer/tests/
 
-tests:
+etl-tests:
 	pytest -v etl/ingestion/tests/ && \
 	pytest -v etl/transformation/tests/ && \
 	pytest -v etl/load/tests/ && \
 	pytest -v stream-processing/producer/tests/
+
+stream-tests:
+	cd stream-processing/analyzer && \
+	sbt test
 
 check-streams-formatting:
 	black --check \

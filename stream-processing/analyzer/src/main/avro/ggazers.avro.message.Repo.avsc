@@ -1,0 +1,55 @@
+{
+    "type": "record",
+    "name": "Repo",
+    "namespace": "ggazers.avro.message",
+    "fields": [
+        {
+            "name": "name_with_owner",
+            "type": ["string", "null"]
+        },
+        {
+            "name": "owner",
+            "type": ["string", "null"]
+        },
+        {
+            "name": "name",
+            "type": ["string", "null"]
+        },
+        {
+            "name": "description",
+            "type": ["string", "null"]
+        }, 
+        {
+            "name": "created_at",
+            "type": ["string", "null"]
+        },
+        {
+            "name": "disk_usage",
+            "type": ["long", "null"]
+        }, 
+        {
+            "name": "visibility",
+            "type": ["string", "null"]
+        },
+        {
+            "name": "stargazers_count",
+            "type": ["long", "null"]
+        },
+        {
+            "name": "forks_count",
+            "type": ["long", "null"]
+        }, 
+        {
+            "name": "watchers_count", 
+            "type": ["long", "null"]
+        }, 
+        {
+            "name": "issues_count",
+            "type": ["long", "null"]
+        },
+        {
+            "name": "primary_language",
+            "type": ["string", "null"]
+        }
+    ]
+}

@@ -34,6 +34,8 @@ class RepoMapper(Mapper):
         for message in messages:
             repo: Repo = Repo(
                 name_with_owner=message.get("nameWithOwner"),
+                owner=message.get("nameWithOwner").split("/")[0],
+                name=message.get("nameWithOwner").split("/")[1],
                 description=message.get("description"),
                 created_at=message.get("createdAt"),
                 disk_usage=message.get("diskUsage"),

@@ -1,0 +1,11 @@
+{
+	"type": "record",
+	"name": "ActorKpi",
+	"namespace": "ggazers.avro.message",
+	"fields": [
+		{ "name": "actor_login", "type": ["string", "null"] },
+		{ "name": "date", "type": ["string", "null"] },
+		{ "name": "commits_count", "type": ["long", "null"] },
+		{ "name": "repos_contributed_to_count", "type": ["long", "null"] }
+	]
+}

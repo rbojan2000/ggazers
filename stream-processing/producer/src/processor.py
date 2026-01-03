@@ -70,6 +70,6 @@ class Processor:
             )
             self.repo_producer.publish_messages(repos)
             self.actor_producer.publish_messages(actors)
-            self.event_producer.publish_messages(push_events, release_events, pr_events)
+            self.event_producer.publish_messages(push_events)
 
             time.sleep(self.sleep_after_poll)
