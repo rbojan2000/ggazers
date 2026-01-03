@@ -1,0 +1,12 @@
+{
+  "type": "record",
+  "name": "ActorPushEvent",
+  "namespace": "ggazers.avro.message",
+  "fields": [
+        {"name": "login", "type": "string"},
+        {"name": "repo_full_name", "type": "string"},
+        {"name": "repo_name", "type": "string"},
+        {"name": "repo_owner", "type": "string"},
+        {"name": "repo_owner_actor_type", "type": "string"}
+    ]
+}

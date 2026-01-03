@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "UserKpi",
+  "namespace": "ggazers.avro.message",
+  "fields": [
+        {"name": "login", "type": "string"},
+        {"name": "codingActionsNum", "type": "int"},
+        {"name": "differentReposNum", "type": "int"},
+        {"name": "mostActionsRepo", "type": "string"},
+        {"name": "differentOrgs", "type": "int"},
+        {"name": "ggazer_score", "type": "float"},
+        {"name": "ggazer_rank", "type": "int"}
+    ]
+}

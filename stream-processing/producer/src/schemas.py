@@ -6,6 +6,9 @@ from dataclasses_avroschema import AvroModel
 
 @dataclass
 class Actor(AvroModel):
+    class Meta:
+        namespace = "ggazers.avro.message"
+
     login: str
     name: Optional[str]
     email: Optional[str]
@@ -18,6 +21,9 @@ class Actor(AvroModel):
 
 @dataclass
 class Repo(AvroModel):
+    class Meta:
+        namespace = "ggazers.avro.message"
+
     name_with_owner: Optional[str]
     description: Optional[str]
     created_at: Optional[str]
@@ -32,6 +38,9 @@ class Repo(AvroModel):
 
 @dataclass
 class GitHubEvent(AvroModel):
+    class Meta:
+        namespace = "ggazers.avro.message"
+
     id: str
     actor_login: str
     repo_name: str
@@ -41,12 +50,18 @@ class GitHubEvent(AvroModel):
 
 @dataclass
 class PushEvent(AvroModel):
+    class Meta:
+        namespace = "ggazers.avro.message"
+
     event: GitHubEvent
     ref: Optional[str]
 
 
 @dataclass
 class ReleaseEvent(AvroModel):
+    class Meta:
+        namespace = "ggazers.avro.message"
+
     event: GitHubEvent
     action: Optional[str]
     release_tag: Optional[str]
@@ -54,6 +69,9 @@ class ReleaseEvent(AvroModel):
 
 @dataclass
 class PullRequestEvent(AvroModel):
+    class Meta:
+        namespace = "ggazers.avro.message"
+
     event: GitHubEvent
     action: Optional[str]
     pr_number: Optional[int]
@@ -61,4 +79,7 @@ class PullRequestEvent(AvroModel):
 
 @dataclass
 class MessageKey(AvroModel):
+    class Meta:
+        namespace = "ggazers.avro.message"
+
     key: str

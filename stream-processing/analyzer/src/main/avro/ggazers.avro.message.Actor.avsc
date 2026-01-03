@@ -1,0 +1,15 @@
+{
+  "type": "record",
+  "name": "Actor",
+  "namespace": "ggazers.avro.message",
+  "fields": [
+    {"name": "login", "type": "string"},
+    {"name": "name", "type": ["string", "null"]},
+    {"name": "email", "type": ["string", "null"]},
+    {"name": "bio", "type": ["string", "null"]},
+    {"name": "company", "type": ["string", "null"]},
+    {"name": "location", "type": ["string", "null"]},
+    {"name": "websiteUrl", "type": ["string", "null"]},
+    {"name": "type", "type": ["null", "string"], "default": null}
+    ]
+}
