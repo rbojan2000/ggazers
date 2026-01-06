@@ -1,6 +1,5 @@
 version: '3.7'
 services:
-
   broker:
     image: confluentinc/cp-kafka:7.3.1
     container_name: broker
@@ -43,6 +42,8 @@ services:
         kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --topic ggazers.github.repo_kpi &&
         kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --topic ggazers.github.user_kpi &&
         kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --topic ggazers.github.organization_kpi &&
+        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --topic ggazers.github.repo_kpi &&
+        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --topic ggazers.github.actor_kpi &&
         echo Kafka topics created successfully.
       '
 

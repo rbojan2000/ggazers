@@ -1,0 +1,10 @@
+SCHEMA_REGISTRY_URL = "http://localhost:8081"
+GROUP_ID = "connector-consumer-group"
+BROKER_URL = "127.0.0.1:9092"
+DB_HOST = "localhost"
+DB_PORT = 5432
+DB_NAME = "ggazers"
+DB_USER = "ggazers"
+DB_PASSWORD = "ggazers123"
+REPO_KPI_TOPIC = "ggazers.github.repo_kpi"
+REPO_KPI_TABLE = "repo_kpi"

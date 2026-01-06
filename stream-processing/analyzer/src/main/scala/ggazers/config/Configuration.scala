@@ -13,8 +13,8 @@ object Configuration {
   val actorsTopic: String     = config.getString("kafka.topics.actors")
   val pushEventsTopic: String = config.getString("kafka.topics.push-events")
   val repoKpiTopic: String    = config.getString("kafka.topics.repo-kpi")
-
-  val windowDuration: Int = config.getInt("kafka.sliding-windows-duration-mins")
+  val actorKpiTopic: String   = config.getString("kafka.topics.actor-kpi")
+  val windowDuration: Int     = config.getInt("kafka.sliding-windows-duration-mins")
 
   val appId: String = config.getString("ggazers.app-id")
 

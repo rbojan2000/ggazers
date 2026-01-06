@@ -8,7 +8,7 @@ from confluent_kafka.serialization import StringDeserializer
 # -------- CONFIG --------
 BOOTSTRAP_SERVERS = "127.0.0.1:9092"
 SCHEMA_REGISTRY_URL = "http://127.0.0.1:8081"
-TOPIC = "ggazers.github.repos"
+TOPIC = "ggazers.github.repo_kpi"
 GROUP_ID = "users-avro-consumer"
 
 # -------- SCHEMA REGISTRY --------
@@ -54,17 +54,17 @@ try:
             continue
 
         if msg.error():
-            print(f"❌ Consumer error: {msg.error()}")
+            print(f"Consumer error: {msg.error()}")
             continue
 
         key = msg.key()
         value = msg.value()   # Already deserialized dict
 
-        print(f"📥 Key={key} | Value={value}")
+        print(f"Key={key} | Value={value}")
 
         # Commit AFTER successful processing
         consumer.commit(message=msg)
 
 finally:
     consumer.close()
-    print("🛑 Consumer closed")
+    print("Consumer closed")

@@ -19,7 +19,7 @@ lazy val root = (project in file("."))
       Libs.scalaTest,
       Libs.mockito
     ),
-   Compile / sourceGenerators += (Compile / avroScalaGenerateSpecific).taskValue,
+  //  Compile / sourceGenerators += (Compile / avroScalaGenerateSpecific).taskValue,
     assembly / assemblyMergeStrategy := {
       case PathList("META-INF", xs@_*) =>
         xs map {

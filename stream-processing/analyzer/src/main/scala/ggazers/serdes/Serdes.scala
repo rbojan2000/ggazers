@@ -1,6 +1,6 @@
 package ggazers.serdes
 
-import ggazers.avro.message.{GitHubEvent, PushEvent, Repo, Actor, EnrichedEvent, RepoKpi}
+import ggazers.avro.message.{GitHubEvent, PushEvent, Repo, Actor, EnrichedEvent, RepoKpi, ActorKpi}
 import ggazers.utils.AvroSupport
 import org.apache.kafka.common.serialization.Serde
 
@@ -11,4 +11,6 @@ trait Serdes extends AvroSupport {
   implicit val actorSerde: Serde[Actor]                 = avroSerde()
   implicit val enrichedEventSerde: Serde[EnrichedEvent] = avroSerde()
   implicit val repoKpiSerde: Serde[RepoKpi]             = avroSerde()
+  implicit val actorKpiSerde: Serde[ActorKpi]           = avroSerde()
+
 }

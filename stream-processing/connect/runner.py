@@ -1,0 +1,31 @@
+import logging
+
+import click
+from connector.connector import Connector, RepoKpiConnector
+from constants import REPO_KPI_TABLE, REPO_KPI_TOPIC
+
+logger = logging.getLogger(__name__)
+
+
+@click.command()
+@click.option(
+    "--dataset",
+    required=True,
+    type=click.Choice(["repo_kpi", "user_kpi"], case_sensitive=False),
+    help="Specify the dataset to transform",
+)
+def run(dataset: str) -> None:
+    logger.info(f"Starting connector for dataset: {dataset}")
+    connector: Connector = None
+
+    match dataset.lower():
+        case "repo_kpi":
+            connector = RepoKpiConnector(topic=REPO_KPI_TOPIC, table=REPO_KPI_TABLE)
+        case "user_kpi":
+            pass
+
+    connector.connect()
+
+
+if __name__ == "__main__":
+    run()

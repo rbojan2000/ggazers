@@ -4,8 +4,13 @@
 	"namespace": "ggazers.avro.message",
 	"fields": [
 		{ "name": "actor_login", "type": ["string", "null"] },
-		{ "name": "date", "type": ["string", "null"] },
+        { "name": "name", "type": ["string", "null"] },
+        { "name": "email", "type": ["string", "null"] },
 		{ "name": "commits_count", "type": ["long", "null"] },
-		{ "name": "repos_contributed_to_count", "type": ["long", "null"] }
+		{ "name": "repos_contributed_to_count", "type": ["long", "null"] },
+        { "name": "most_contributed_repo_name","type": ["string", "null"] },
+        { "name": "repos_map", "type": ["null", {"type": "map", "values": "long"}], "default": null },
+        { "name": "window_start_utc", "type": ["null", "string"], "default": null },
+        { "name": "window_end_utc", "type": ["null", "string"], "default": null }
 	]
 }

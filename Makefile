@@ -7,7 +7,8 @@ black:
 		etl/load/src/ \
 		etl/load/tests/ \
 		stream-processing/producer/src/ \
-		stream-processing/producer/tests/
+		stream-processing/producer/tests/ \
+		stream-processing/connect/
 
 isort:
 	isort --profile black etl/ stream-processing/
@@ -21,7 +22,8 @@ flake:
 		etl/load/src/ \
 		etl/load/tests/ \
 		stream-processing/producer/src/ \
-		stream-processing/producer/tests/
+		stream-processing/producer/tests/ \
+		stream-processing/connect/
 
 etl-tests:
 	pytest -v etl/ingestion/tests/ && \
@@ -36,12 +38,14 @@ stream-tests:
 check-streams-formatting:
 	black --check \
 		stream-processing/producer/src/ \
-		stream-processing/producer/tests/ && \
+		stream-processing/producer/tests/ \
+		stream-processing/connect/ && \
 	isort --check --profile black \
 		stream-processing/ && \
 	flake8 --max-line-length=111 --ignore=E203 \
 		stream-processing/producer/src/ \
-		stream-processing/producer/tests/
+		stream-processing/producer/tests/ \
+		stream-processing/connect/
 
 check-etl-formatting:
 	black --check \
@@ -61,8 +65,17 @@ check-etl-formatting:
 
 check-formatting: check-streams-formatting check-etl-formatting
 
+etl-infrastructure-up:
+	docker-compose -f infrastructure/batch.docker-compose.yml up -d
+
+etl-infrastructure-down:
+	docker-compose -f infrastructure/batch.docker-compose.yml down
+
 streams-infrastructure-up:
-	docker-compose -f infrastructure/streams.docker-compose.yml up
+	docker-compose -f infrastructure/streams.docker-compose.yml up -d
 
 streams-infrastructure-down:
 	docker-compose -f infrastructure/streams.docker-compose.yml down
+
+up: etl-infrastructure-up streams-infrastructure-up
+down: etl-infrastructure-down streams-infrastructure-down

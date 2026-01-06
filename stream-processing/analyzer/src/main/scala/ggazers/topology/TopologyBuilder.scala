@@ -2,9 +2,9 @@ package ggazers.topology
 
 import ggazers.config.Configuration
 import ggazers.serdes.Serdes
-import ggazers.avro.message.{GitHubEvent, PushEvent, Repo, Actor, EnrichedEvent, RepoKpi}
+import ggazers.avro.message.{GitHubEvent, PushEvent, Repo, Actor, EnrichedEvent, RepoKpi, ActorKpi}
 import ggazers.joiner.{PushEventActorJoiner, PushEventRepoJoiner}
-import ggazers.aggregate.RepoKpiAggregator
+import ggazers.aggregate.{RepoKpiAggregator, ActorKpiAggregator}
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.streams.Topology
 import org.apache.kafka.streams.scala.ImplicitConversions._
@@ -15,6 +15,7 @@ import org.apache.kafka.streams.kstream.{GlobalKTable, Named, SlidingWindows, Wi
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.time.ZoneOffset
+import org.apache.kafka.streams.scala.kstream.Produced
 
 import java.time.Duration
 
@@ -23,6 +24,7 @@ case class TopologyBuilder()
     with PushEventActorJoiner
     with PushEventRepoJoiner
     with RepoKpiAggregator
+    with ActorKpiAggregator
     with LazyLogging {
 
   val builder: StreamsBuilder = new StreamsBuilder()
@@ -111,7 +113,7 @@ case class TopologyBuilder()
           logger.debug(s"Repo kpi {window: $k} metric: $v")
         }
       )
-      .to(Configuration.repoKpiTopic)
+      .to(Configuration.repoKpiTopic)(Produced.`with`(stringSerde, repoKpiSerde))
 
     val fullyEnrichedEventsGroupedByActorStream: KGroupedStream[String, EnrichedEvent] =
       fullyEnrichedEvents
@@ -120,6 +122,45 @@ case class TopologyBuilder()
           Grouped.`with`(stringSerde, enrichedEventSerde)
         )
 
+    val actorKpi: KTable[Windowed[String], ActorKpi] = fullyEnrichedEventsGroupedByActorStream
+      .windowedBy(
+        SlidingWindows.ofTimeDifferenceWithNoGrace(Duration.ofMinutes(Configuration.windowDuration))
+      )
+      .aggregate(
+        initializer = ActorKpi(
+          actor_login = Some(""),
+          name = Some(""),
+          email = Some(""),
+          commits_count = Some(0L),
+          repos_contributed_to_count = Some(0L),
+          most_contributed_repo_name = Some(""),
+          repos_map = Some(Map.empty)
+        )
+      )(
+        aggregate
+      )(Materialized.`with`(stringSerde, actorKpiSerde))
+
+    actorKpi
+      .toStream(Named.as("processed-actor-kpi"))
+      .map { (window, value) =>
+        val windowStartMillis = window.window().startTime().toEpochMilli
+        val windowEndMillis   = window.window().endTime().toEpochMilli
+        val windowStartUtc    = Some(formatter.format(Instant.ofEpochMilli(windowStartMillis)))
+        val windowEndUtc      = Some(formatter.format(Instant.ofEpochMilli(windowEndMillis)))
+        val withWindow        = value.copy(
+          window_start_utc = windowStartUtc,
+          window_end_utc = windowEndUtc
+        )
+        (value.actor_login.getOrElse(""), withWindow)
+      }
+      .selectKey((window, value) => value.actor_login.getOrElse(""))
+      .peek((k, v) =>
+        logger.whenDebugEnabled {
+          logger.debug(s"Actor kpi {window: $k} metric: $v")
+        }
+      )
+      .to(Configuration.actorKpiTopic)(Produced.`with`(stringSerde, actorKpiSerde))
+  
     builder.build()
   }
 }

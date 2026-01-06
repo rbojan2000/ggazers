@@ -2,10 +2,6 @@ package ggazers.aggregate
 
 import ggazers.avro.message.{EnrichedEvent, RepoKpi}
 
-//   def aggregate(key: String, cityAqiInfo: CityAqiInfo, metric: CountryAirQualityMetrics): CountryAirQualityMetrics = {
-// EnrichedEvent(var event: Option[ggazers.avro.message.PushEvent] = None, var repo: Option[ggazers.avro.message.Repo] = None, var actor: Option[ggazers.avro.message.Actor] = None) extends org.apache.avro.specific.SpecificRecordBase {
-// Repo(var name_with_owner: Option[String], var owner: Option[String], var name: Option[String], var description: Option[String], var created_at: Option[String], var disk_usage: Option[Long], var visibility: Option[String], var stargazers_count: Option[Long], var forks_count: Option[Long], var watchers_count: Option[Long], var issues_count: Option[Long], var primary_language: Option[String]) extends org.apache.avro.specific.SpecificRecordBase {
-
 trait RepoKpiAggregator {
   def aggregate(key: String, enrichedEvent: EnrichedEvent, aggregate: RepoKpi): RepoKpi =
     RepoKpi(
