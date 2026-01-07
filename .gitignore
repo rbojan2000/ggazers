@@ -11,3 +11,6 @@ data/
 .pytest_cache/
 metastore_db/
 target/
+.metals/
+.scala-build/
+.vscode/

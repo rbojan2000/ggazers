@@ -1,6 +1,5 @@
 import json
 import logging
-from abc import ABC
 
 from confluent_kafka import DeserializingConsumer
 from confluent_kafka.schema_registry import SchemaRegistryClient
@@ -21,7 +20,7 @@ from db_client import DBClient
 logger = logging.getLogger(__name__)
 
 
-class Connector(ABC):
+class Connector:
     def __init__(
         self,
         schema_registry_url: str = SCHEMA_REGISTRY_URL,
@@ -44,17 +43,6 @@ class Connector(ABC):
         )
 
     def connect(self):
-        pass
-
-
-class RepoKpiConnector(Connector):
-    def __init__(self, topic: str, table: str):
-        super().__init__()
-        self.topic = topic
-        self.table = table
-        self.conflict_fields = ["name_with_owner", "window_start_utc"]
-
-    def connect(self):
         self.consumer.subscribe([self.topic])
 
         print(f"RepoKpiConnector consuming from {self.topic}...")
@@ -68,7 +56,7 @@ class RepoKpiConnector(Connector):
                     continue
                 key = msg.key()
                 value = msg.value()
-                value["committers_map"] = json.dumps(value["committers_map"])
+                value[self.map_col] = json.dumps(value[self.map_col])
                 print(f"Consumed record with key: {key}, value: {value}")
 
                 if value:
@@ -83,4 +71,27 @@ class RepoKpiConnector(Connector):
             self.db_client.release_connection()
 
 
-# class ActorKpiConnector(Connector):
+class RepoKpiConnector(Connector):
+    def __init__(
+        self,
+        topic: str,
+        table: str,
+        conflict_fields=["name_with_owner", "window_start_utc"],
+        map_col="committers_map",
+    ):
+        super().__init__()
+        self.topic = topic
+        self.table = table
+        self.conflict_fields = conflict_fields
+        self.map_col = map_col
+
+
+class ActorKpiConnector(Connector):
+    def __init__(
+        self, topic: str, table: str, conflict_fields=["actor_login", "window_start_utc"], map_col="repos_map"
+    ):
+        super().__init__()
+        self.topic = topic
+        self.table = table
+        self.conflict_fields = conflict_fields
+        self.map_col = map_col

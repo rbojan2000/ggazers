@@ -66,10 +66,10 @@ check-etl-formatting:
 check-formatting: check-streams-formatting check-etl-formatting
 
 etl-infrastructure-up:
-	docker-compose -f infrastructure/batch.docker-compose.yml up -d
+	docker-compose -f infrastructure/visualization.docker-compose.yml up -d
 
 etl-infrastructure-down:
-	docker-compose -f infrastructure/batch.docker-compose.yml down
+	docker-compose -f infrastructure/visualization.docker-compose.yml down
 
 streams-infrastructure-up:
 	docker-compose -f infrastructure/streams.docker-compose.yml up -d

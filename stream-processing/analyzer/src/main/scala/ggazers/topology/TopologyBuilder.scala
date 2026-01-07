@@ -134,6 +134,7 @@ case class TopologyBuilder()
           commits_count = Some(0L),
           repos_contributed_to_count = Some(0L),
           most_contributed_repo_name = Some(""),
+          ggazer_score = Some(0.0),
           repos_map = Some(Map.empty)
         )
       )(
@@ -160,7 +161,7 @@ case class TopologyBuilder()
         }
       )
       .to(Configuration.actorKpiTopic)(Produced.`with`(stringSerde, actorKpiSerde))
-  
+
     builder.build()
   }
 }
