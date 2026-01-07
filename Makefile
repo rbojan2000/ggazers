@@ -65,10 +65,10 @@ check-etl-formatting:
 
 check-formatting: check-streams-formatting check-etl-formatting
 
-etl-infrastructure-up:
+visualization-infrastructure-up:
 	docker-compose -f infrastructure/visualization.docker-compose.yml up -d
-
-etl-infrastructure-down:
+	
+visualization-infrastructure-down:
 	docker-compose -f infrastructure/visualization.docker-compose.yml down
 
 streams-infrastructure-up:
@@ -77,5 +77,11 @@ streams-infrastructure-up:
 streams-infrastructure-down:
 	docker-compose -f infrastructure/streams.docker-compose.yml down
 
-up: etl-infrastructure-up streams-infrastructure-up
-down: etl-infrastructure-down streams-infrastructure-down
+spark-cluster-up:
+	docker-compose -f infrastructure/spark/docker-compose.yml up
+
+spark-cluster-down:
+	docker-compose -f infrastructure/spark/docker-compose.yml stop
+
+up: visualization-infrastructure-up streams-infrastructure-up spark-cluster-up
+down: visualization-infrastructure-down streams-infrastructure-down spark-cluster-down

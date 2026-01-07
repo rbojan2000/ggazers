@@ -18,6 +18,8 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    networks:
+      - ggazers_nw
 
   superset:
     image: apache/superset:4.1.2
@@ -44,9 +46,16 @@ services:
       superset init &&
       superset run -h 0.0.0.0 -p 8088
       "
+    networks:
+      - ggazers_nw
 
 volumes:
   postgres_data:
     driver: local
   superset_home:
     driver: local
+
+networks:
+  ggazers_nw:
+    driver: bridge
+    name: ggazers_nw

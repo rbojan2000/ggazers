@@ -1,4 +1,3 @@
-version: '3.7'
 services:
   broker:
     image: confluentinc/cp-kafka:7.3.1
@@ -23,7 +22,7 @@ services:
       - ./update_run.sh:/tmp/update_run.sh
     command: "bash -c 'if [ ! -f /tmp/update_run.sh ]; then echo \"ERROR: Did you forget the update_run.sh file that came with this docker-compose.yml file?\" && exit 1 ; else /tmp/update_run.sh && /etc/confluent/docker/run ; fi'"
     networks:
-      - streams_nw
+      - ggazers_nw
 
   kafka-topic-setup:
     image: confluentinc/cp-kafka:7.3.1
@@ -34,18 +33,15 @@ services:
       bash -c '
         echo Waiting for Kafka to be ready... &&
         cub kafka-ready -b broker:29092 1 20 &&
-        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --topic ggazers.github.push_events &&
-        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --topic ggazers.github.release_events &&
-        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --topic ggazers.github.pr_events &&
-        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --config cleanup.policy=compact --topic ggazers.github.repos &&
-        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --config cleanup.policy=compact --topic ggazers.github.actors &&
-        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --topic ggazers.github.repo_kpi &&
-        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --topic ggazers.github.user_kpi &&
-        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --topic ggazers.github.organization_kpi &&
-        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --topic ggazers.github.repo_kpi &&
-        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 3 --replication-factor 1 --topic ggazers.github.actor_kpi &&
+        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 1 --replication-factor 1 --topic ggazers.github.push_events &&
+        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 1 --replication-factor 1 --config cleanup.policy=compact --topic ggazers.github.repos &&
+        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 1 --replication-factor 1 --config cleanup.policy=compact --topic ggazers.github.actors &&
+        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 1 --replication-factor 1 --topic ggazers.github.repo_kpi &&
+        kafka-topics --create --if-not-exists --bootstrap-server broker:29092 --partitions 1 --replication-factor 1 --topic ggazers.github.actor_kpi &&
         echo Kafka topics created successfully.
       '
+    networks:
+      - ggazers_nw
 
   schema-registry:
     image: confluentinc/cp-schema-registry:7.3.0
@@ -61,41 +57,64 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
     networks:
-      - streams_nw
+      - ggazers_nw
 
-  # weather-air-analytics_streams-insights_producer_cities:
-  #   image: rbojan2000/weather-air-analytics_streams-insights_producer
-  #   command: "bash -c 'echo Waiting for Kafka to be ready... && until nc -z schema-registry 8081; do sleep 1; done  && java -jar target/scala-2.13/producer-0.1.0.jar -d cities'"
-  #   depends_on:
-  #     - broker
-  #     - schema-registry
-  #   networks:
-  #     - streams_nw
-
-  # weather-air-analytics_streams-insights_producer_air-quality:
-  #   image: rbojan2000/weather-air-analytics_streams-insights_producer
-  #   command: "bash -c 'echo Waiting for Kafka to be ready... && until nc -z schema-registry 8081; do sleep 1; done  && java -jar target/scala-2.13/producer-0.1.0.jar -d air-quality'"
-  #   depends_on:
-  #     - broker
-  #     - weather-air-analytics_streams-insights_producer_cities
-  #     - schema-registry
-  #   networks:
-  #     - streams_nw
-
-  ggazers-analyzer:
-    image: 
-      build: ../../stream-processing/analyzer
+  ggazers-producer:
+    build:
+      context: ../stream-processing/producer
       dockerfile: Dockerfile
-    command: "bash -c 'echo Waiting for Kafka to be ready... && until nc -z schema-registry 8081; do sleep 1; done  && java -jar target/scala-2.13/air-quality-analyzer-0.1.0-SNAPSHOT.jar'" 
+    command: "bash -c 'echo Waiting for Kafka to be ready... && until nc -z schema-registry 8081; do sleep 1; done && python3 src/runner.py'"
+    env_file:
+      - ../stream-processing/producer/src/.env
     depends_on:
       - broker
-      # - weather-air-analytics_streams-insights_producer_cities
-      # - weather-air-analytics_streams-insights_producer_air-quality
       - schema-registry
     networks:
-      - streams_nw
+      - ggazers_nw
+
+  ggazers-analyzer:
+    build:
+      context: ../stream-processing/analyzer
+      dockerfile: Dockerfile
+    command: "bash -c 'echo Waiting for Kafka to be ready... && until nc -z schema-registry 8081; do sleep 1; done  && java -jar target/scala-2.13/ggazers-0.1.0-SNAPSHOT.jar'"
+    depends_on:
+      - broker
+      - schema-registry
+      - ggazers-producer
+    networks:
+      - ggazers_nw
+
+  ggazers-repokpi-connect:
+    build:
+      context: ../stream-processing/connect
+      dockerfile: Dockerfile
+    command: bash -c 'echo Waiting for Kafka to be ready... && until nc -z schema-registry 8081; do sleep 1; done  && python3 runner.py --dataset repo_kpi'
+    depends_on:
+      - broker
+      - schema-registry
+      - ggazers-producer
+      - ggazers-analyzer
+    networks:
+      - ggazers_nw
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+  ggazers-actorkpi-connect:
+    build:
+      context: ../stream-processing/connect
+      dockerfile: Dockerfile
+    command: bash -c 'echo Waiting for Kafka to be ready... && until nc -z schema-registry 8081; do sleep 1; done  && python3 runner.py --dataset actor_kpi'
+    depends_on:
+      - broker
+      - schema-registry
+      - ggazers-producer
+      - ggazers-analyzer
+    networks:
+      - ggazers_nw
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
 
 networks:
-  streams_nw:
+  ggazers_nw:
     driver: bridge
-    name: streams_nw
+    name: ggazers_nw

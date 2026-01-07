@@ -1,7 +1,10 @@
+import dotenv
 from mapper.mapper import ActorMapper, GitHubEventMapper, RepoMapper
 from producer.kafka_producer import ActorProducer, GithubEventProducer, RepoProducer
 from src.github_client import GithubClient
 from src.processor import Processor
+
+dotenv.load_dotenv()
 
 github_client = GithubClient()
 events_producer = GithubEventProducer()

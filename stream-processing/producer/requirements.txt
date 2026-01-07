@@ -1,5 +1,6 @@
 avro==1.12.1
 confluent-kafka==2.4.0
 requests==2.31.0
-fastavro==1.7.0
-dataclass-avroschema==0.66.2
+fastavro==1.7.3
+dataclasses-avroschema==0.66.2
+dotenv==0.9.9
