@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-ggazers}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ggazers123}
       POSTGRES_DB: ${POSTGRES_DB:-ggazers}
-      POSTGRES_MULTIPLE_DATABASES: superset
+      POSTGRES_MULTIPLE_DATABASES: superset,ggazers,airflow
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:

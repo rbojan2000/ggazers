@@ -9,6 +9,7 @@ services:
     volumes:
        - ../../etl/transformation:/opt/app/transformation
        - ../../etl/load:/opt/app/load
+       - ../../etl/ingestion:/opt/app/ingestion
        - ../../data:/opt/data
 
     environment:
@@ -37,6 +38,7 @@ services:
     volumes:
        - ../../etl/transformation:/opt/app/transformation
        - ../../etl/load:/opt/app/load
+       - ../../etl/ingestion:/opt/app/ingestion
        - ../../data:/opt/data
 
     networks:
@@ -62,6 +64,7 @@ services:
     volumes:
        - ../../etl/transformation:/opt/app/transformation
        - ../../etl/load:/opt/app/load
+       - ../../etl/ingestion:/opt/app/ingestion
        - ../../data:/opt/data
     networks:
       - ggazers_nw
