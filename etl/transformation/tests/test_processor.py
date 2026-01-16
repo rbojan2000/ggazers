@@ -5,6 +5,7 @@ import time
 import unittest
 from datetime import date
 from pathlib import Path
+from typing import Any, Dict, List
 from unittest.mock import patch
 
 from pyspark.sql import SparkSession
@@ -14,7 +15,7 @@ from src.processor import DataProcessor
 class DataProcessorTests(unittest.TestCase):
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls.temp_dir = tempfile.mkdtemp()
         cls.warehouse_path = Path(cls.temp_dir) / "warehouse"
         cls.warehouse_path.mkdir()
@@ -100,7 +101,7 @@ class DataProcessorTests(unittest.TestCase):
         )
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         if cls.spark:
             cls.spark.sql("DROP TABLE IF EXISTS ggazers.silver.dim_actor")
             cls.spark.sql("DROP TABLE IF EXISTS ggazers.silver.dim_repo")
@@ -113,7 +114,7 @@ class DataProcessorTests(unittest.TestCase):
         if Path(cls.temp_dir).exists():
             shutil.rmtree(cls.temp_dir)
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.spark.sql("DELETE FROM ggazers.silver.dim_actor")
         self.spark.sql("DELETE FROM ggazers.silver.dim_repo")
         self.spark.sql("DELETE FROM ggazers.silver.dim_coding_session")
@@ -127,11 +128,11 @@ class DataProcessorTests(unittest.TestCase):
         self.actors_dir.mkdir(parents=True)
         self.repos_dir.mkdir(parents=True)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         if self.test_data_dir.exists():
             shutil.rmtree(self.test_data_dir)
 
-    def _create_actor_test_file(self, date_str: str, part: int, data: list):
+    def _create_actor_test_file(self, date_str: str, part: int, data: List[Dict[str, Any]]) -> str:
         date_dir = self.actors_dir / date_str
         date_dir.mkdir(exist_ok=True)
         file_path = date_dir / f"{date_str}_{part}.jsonl"
@@ -142,7 +143,7 @@ class DataProcessorTests(unittest.TestCase):
 
         return str(file_path)
 
-    def _create_repo_test_file(self, date_str: str, part: int, data: list):
+    def _create_repo_test_file(self, date_str: str, part: int, data: List[Dict[str, Any]]) -> str:
         date_dir = self.repos_dir / date_str
         date_dir.mkdir(exist_ok=True)
         file_path = date_dir / f"{date_str}_{part}.jsonl"
@@ -154,7 +155,7 @@ class DataProcessorTests(unittest.TestCase):
         return str(file_path)
 
     @patch("src.processor.build_paths")
-    def test_process_actors_insert(self, mock_build_paths):
+    def test_process_actors_insert(self, mock_build_paths: Any) -> None:
         """Test inserting new actors"""
 
         test_data = [
@@ -191,7 +192,7 @@ class DataProcessorTests(unittest.TestCase):
         self.assertEqual(result[0].followers_count, 100)
 
     @patch("src.processor.build_paths")
-    def test_process_actors_update(self, mock_build_paths):
+    def test_process_actors_update(self, mock_build_paths: Any) -> None:
         """Test updating existing actors"""
         self.spark.sql(
             """
@@ -233,7 +234,7 @@ class DataProcessorTests(unittest.TestCase):
         self.assertEqual(result[0].followers_count, 150)
 
     @patch("src.processor.build_paths")
-    def test_process_repos_insert(self, mock_build_paths):
+    def test_process_repos_insert(self, mock_build_paths: Any) -> None:
         """Test inserting new repositories"""
         test_data = [
             {
@@ -272,7 +273,7 @@ class DataProcessorTests(unittest.TestCase):
         self.assertEqual(result[0].name, "hello-world")
         self.assertEqual(result[0].stargazers_count, 100)
 
-    def test_process_repos_update(self):
+    def test_process_repos_update(self) -> None:
         """Test updating existing repositories"""
         self.spark.sql(
             """

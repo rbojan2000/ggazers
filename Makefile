@@ -25,7 +25,9 @@ flake:
 		stream-processing/producer/src/ \
 		stream-processing/producer/tests/ \
 		stream-processing/connect/ \
-		dags/
+		dags/ \
+
+format: black isort flake
 
 etl-tests:
 	pytest -v etl/ingestion/tests/ && \
@@ -36,6 +38,8 @@ etl-tests:
 stream-tests:
 	cd stream-processing/analyzer && \
 	sbt test
+
+tests: etl-tests stream-tests
 
 check-streams-formatting:
 	black --check \
@@ -67,12 +71,11 @@ check-etl-formatting:
 		etl/load/tests/ \
 		dags/
 
-
 check-formatting: check-streams-formatting check-etl-formatting
 
 visualization-infrastructure-up:
 	docker-compose -f infrastructure/visualization.docker-compose.yml up -d
-	
+
 visualization-infrastructure-down:
 	docker-compose -f infrastructure/visualization.docker-compose.yml down
 

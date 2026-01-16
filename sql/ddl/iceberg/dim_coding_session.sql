@@ -1,3 +1,5 @@
+spark.sql(
+"""
 CREATE TABLE IF NOT EXISTS ggazers.silver.dim_coding_session (
     actor_login STRING NOT NULL,
     session_start TIMESTAMP NOT NULL,
@@ -7,3 +9,4 @@ CREATE TABLE IF NOT EXISTS ggazers.silver.dim_coding_session (
     repos STRING NOT NULL
 ) USING ICEBERG
 PARTITIONED BY (days(session_start))
+""")

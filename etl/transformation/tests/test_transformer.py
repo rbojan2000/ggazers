@@ -21,14 +21,14 @@ class TransformerTests(unittest.TestCase):
         cls.spark.sparkContext.setLogLevel("ERROR")
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         if cls.spark:
             cls.spark.stop()
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.transformer = Transformer()
 
-    def test_flatten_repository_topics_multiple_topics(self):
+    def test_flatten_repository_topics_multiple_topics(self) -> None:
         """Test flattening repository topics with multiple topics"""
         data = [
             {
@@ -59,7 +59,7 @@ class TransformerTests(unittest.TestCase):
         # Topics are collected as a set, so order may vary
         self.assertIn(result.repository_topics, ["python,spark", "spark,python"])
 
-    def test_flatten_repository_topics_no_topics(self):
+    def test_flatten_repository_topics_no_topics(self) -> None:
         """Test flattening repository topics with no topics"""
         data = [
             {
@@ -86,7 +86,7 @@ class TransformerTests(unittest.TestCase):
         result = df_transformed.select("repository_topics").collect()[0].repository_topics
         self.assertIsNone(result)
 
-    def test_flatten_repository_topics_single_topic(self):
+    def test_flatten_repository_topics_single_topic(self) -> None:
         """Test flattening repository topics with single topic"""
         data = [
             {
@@ -113,7 +113,7 @@ class TransformerTests(unittest.TestCase):
         result = df_transformed.select("repository_topics").collect()[0].repository_topics
         self.assertEqual(result, "javascript")
 
-    def test_transform_actors_deduplication(self):
+    def test_transform_actors_deduplication(self) -> None:
         """Test that actors are deduplicated by most recent ingested_at"""
         data = [
             {
@@ -167,7 +167,7 @@ class TransformerTests(unittest.TestCase):
         self.assertEqual(result[0].avatar_url, "https://new.url")
         self.assertEqual(result[0].followers_count, 150)
 
-    def test_transform_actors_column_mapping(self):
+    def test_transform_actors_column_mapping(self) -> None:
         """Test that actor columns are properly renamed and transformed"""
         data = [
             {
@@ -210,7 +210,7 @@ class TransformerTests(unittest.TestCase):
         self.assertNotIn("following", df_transformed.columns)
         self.assertNotIn("ingested_at", df_transformed.columns)
 
-    def test_transform_actors_with_nulls(self):
+    def test_transform_actors_with_nulls(self) -> None:
         """Test transforming actors with null values"""
         data = [
             {
@@ -245,7 +245,7 @@ class TransformerTests(unittest.TestCase):
         self.assertIsNone(result.twitter_username)
         self.assertIsNone(result.status_message)
 
-    def test_transform_repos_column_mapping(self):
+    def test_transform_repos_column_mapping(self) -> None:
         """Test that repo columns are properly renamed and transformed"""
         data = [
             {
@@ -293,7 +293,7 @@ class TransformerTests(unittest.TestCase):
         self.assertNotIn("watchers", df_transformed.columns)
         self.assertNotIn("issues", df_transformed.columns)
 
-    def test_transform_repos_deduplication(self):
+    def test_transform_repos_deduplication(self) -> None:
         """Test that repos are deduplicated by most recent ingested_at"""
         data = [
             {
@@ -340,7 +340,7 @@ class TransformerTests(unittest.TestCase):
         self.assertEqual(result[0].stargazers_count, 200)
         self.assertEqual(result[0].disk_usage, 2048)
 
-    def test_transform_repos_split_name_with_owner(self):
+    def test_transform_repos_split_name_with_owner(self) -> None:
         """Test that name_with_owner is correctly split into owner and name"""
         data = [
             {
@@ -409,7 +409,7 @@ class TransformerTests(unittest.TestCase):
         self.assertNotIn("repo", df_transformed.columns)
         self.assertNotIn("ingested_at", df_transformed.columns)
 
-    def test_transform_events_null_filtering(self):
+    def test_transform_events_null_filtering(self) -> None:
         """Test that events with null required fields are filtered out"""
 
         data = [
@@ -470,7 +470,7 @@ class TransformerTests(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].type, "PushEvent")
 
-    def test_transform_sessions_single_session(self):
+    def test_transform_sessions_single_session(self) -> None:
         """Test session transformation with events forming a single session"""
         data = [
             {
@@ -499,7 +499,7 @@ class TransformerTests(unittest.TestCase):
         self.assertEqual(result[0].events_count, 3)
         self.assertEqual(result[0].session_duration_seconds, 3 * 60 * 60)  # 3 hours
 
-    def test_transform_sessions_multiple_sessions(self):
+    def test_transform_sessions_multiple_sessions(self) -> None:
         """Test session transformation with events forming multiple sessions"""
         data = [
             # Session 1
@@ -532,7 +532,7 @@ class TransformerTests(unittest.TestCase):
 
         self.assertEqual(len(result), 2)
 
-    def test_transform_sessions_multiple_users(self):
+    def test_transform_sessions_multiple_users(self) -> None:
         """Test session transformation with multiple users"""
         data = [
             # User 1
@@ -566,7 +566,7 @@ class TransformerTests(unittest.TestCase):
         self.assertEqual(len(result), 2)
         self.assertSetEqual(set([r.actor_login for r in result]), {"user1", "user2"})
 
-    def test_transform_sessions_exact_boundary(self):
+    def test_transform_sessions_exact_boundary(self) -> None:
         """Test session boundary at exactly 8 hours"""
         data = [
             {

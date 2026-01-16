@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 from airflow import DAG
+from airflow.operators.empty import EmptyOperator
 from airflow.providers.ssh.operators.ssh import SSHOperator
 
 default_args = {"owner": "Bojan Radovic", "retries": 3, "retry_delay": timedelta(minutes=2)}
@@ -19,10 +20,22 @@ with DAG(
         command="cd /opt/app/ingestion/ && " "poetry run python3 -m src.runner",
     )
 
-    transform = SSHOperator(
-        task_id="transform",
+    transform_actors = SSHOperator(
+        task_id="transform_actors",
         ssh_conn_id="1",
         command="cd /opt/app/transformation/ && " "python3 -m src.runner --dataset actors",
+    )
+
+    transform_repos = SSHOperator(
+        task_id="transform_repos",
+        ssh_conn_id="1",
+        command="cd /opt/app/transformation/ && " "python3 -m src.runner --dataset repos",
+    )
+
+    transform_github_events = SSHOperator(
+        task_id="transform_github_events",
+        ssh_conn_id="1",
+        command="cd /opt/app/transformation/ && " "python3 -m src.runner --dataset github_events",
     )
 
     load_repo_level_stats = SSHOperator(
@@ -42,4 +55,12 @@ with DAG(
         command="cd /opt/app/load/ && " "python3 -m src.runner --dataset user_level_stats",
     )
 
-    (ingestion >> transform >> load_org_level_stats >> load_user_level_stats >> load_repo_level_stats)
+    sync_transforms = EmptyOperator(task_id="sync_transforms")
+
+    ingestion >> [transform_github_events, transform_actors, transform_repos] >> sync_transforms
+
+    sync_transforms >> [
+        load_repo_level_stats,
+        load_org_level_stats,
+        load_user_level_stats,
+    ]

@@ -11,7 +11,7 @@ import org.apache.kafka.streams.scala.ImplicitConversions._
 import org.apache.kafka.streams.scala.StreamsBuilder
 import org.apache.kafka.streams.scala.kstream._
 import org.apache.kafka.streams.scala.serialization.Serdes._
-import org.apache.kafka.streams.kstream.{GlobalKTable, Named, SlidingWindows, Windowed}
+import org.apache.kafka.streams.kstream.{GlobalKTable, Named, TimeWindows, Windowed}
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.time.ZoneOffset
@@ -77,7 +77,7 @@ case class TopologyBuilder()
 
     val repoKpi: KTable[Windowed[String], RepoKpi] = fullyEnrichedEventsGroupedByRepoStream
       .windowedBy(
-        SlidingWindows.ofTimeDifferenceWithNoGrace(Duration.ofMinutes(Configuration.windowDuration))
+        TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(Configuration.windowDuration))
       )
       .aggregate(
         initializer = RepoKpi(
@@ -124,7 +124,7 @@ case class TopologyBuilder()
 
     val actorKpi: KTable[Windowed[String], ActorKpi] = fullyEnrichedEventsGroupedByActorStream
       .windowedBy(
-        SlidingWindows.ofTimeDifferenceWithNoGrace(Duration.ofMinutes(Configuration.windowDuration))
+        TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(Configuration.windowDuration))
       )
       .aggregate(
         initializer = ActorKpi(
