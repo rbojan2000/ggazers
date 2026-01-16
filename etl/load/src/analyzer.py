@@ -707,7 +707,8 @@ class Analyzer:
                         o.website_url,
                         o.description,
                         o.company,
-                        o.location
+                        o.location,
+                        o.repositories_count as total_repos_count
                     FROM
                         ggazers.silver.dim_actor o
                     WHERE
@@ -793,21 +794,6 @@ class Analyzer:
                     GROUP BY
                         split(se.repo_name, '/')[0]
                 ),
-                total_repos_num AS (
-                    SELECT
-                        owner,
-                        COUNT(DISTINCT dim_repo.name) AS total_repos_count
-                    FROM
-                        ggazers.silver.dim_repo
-                    JOIN
-                        ggazers.silver.dim_actor da
-                    ON
-                        dim_repo.owner = da.login
-                    WHERE
-                        da.type = 'Organization'
-                    GROUP BY
-                        owner
-                ),
                 ggazer_score AS (
                     SELECT
                         oi.login AS org_login,
@@ -816,7 +802,7 @@ class Analyzer:
                             (COALESCE(cn.commit_count, 0) * 3) +
                             (COALESCE(mam.activity_count, 0) * 4) +
                             (COALESCE(nsn.new_stargazers_count, 0) * 2) +
-                            (COALESCE(trn.total_repos_count, 0) * 1)
+                            (COALESCE(oi.total_repos_count, 0) * 1)
                         , 2) AS ggazers_score
                     FROM
                         org_info oi
@@ -824,7 +810,6 @@ class Analyzer:
                     LEFT JOIN commits_num cn ON oi.login = cn.repo_owner
                     LEFT JOIN most_active_member mam ON oi.login = mam.actor_login
                     LEFT JOIN new_stargazers_num nsn ON oi.login = nsn.repo_owner
-                    LEFT JOIN total_repos_num trn ON oi.login = trn.owner
                 ),
                 ggazer_rankings AS (
                     SELECT
@@ -851,7 +836,6 @@ class Analyzer:
                     COALESCE(mam.actor_login, 'N/A') AS most_active_member,
                     COALESCE(mam.activity_count, 0) AS most_active_member_activity_count,
                     COALESCE(nsn.new_stargazers_count, 0) AS new_stargazers_count,
-                    COALESCE(trn.total_repos_count, 0) AS total_repos_count,
                     COALESCE(gs.ggazers_score, 0.0) AS ggazers_score,
                     COALESCE(gr.activity_label, 'Inactive') AS activity_label,
                     COALESCE(gr.ggazer_rank, 0) AS ggazer_rank
@@ -873,10 +857,6 @@ class Analyzer:
                     new_stargazers_num nsn
                 ON
                     oi.login = nsn.repo_owner
-                LEFT JOIN
-                    total_repos_num trn
-                ON
-                    oi.login = trn.owner
                 LEFT JOIN
                     ggazer_score gs
                 ON

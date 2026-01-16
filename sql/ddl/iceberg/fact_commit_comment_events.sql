@@ -1,4 +1,5 @@
-
+spark.sql(
+"""
 CREATE TABLE IF NOT EXISTS ggazers.silver.fact_commit_comment_events (
     type STRING,
     created_at TIMESTAMP NOT NULL,
@@ -7,3 +8,4 @@ CREATE TABLE IF NOT EXISTS ggazers.silver.fact_commit_comment_events (
     comment STRING
 ) USING ICEBERG
 PARTITIONED BY (days(created_at))
+""")

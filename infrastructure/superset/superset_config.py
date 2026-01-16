@@ -4,6 +4,12 @@ import os
 # Core Superset config
 # ------------------------------------------------------------------------------
 
+# Set the maximum number of rows to display in the chart
+DISPLAY_MAX_ROW = 40000  # Adjust this value as needed
+
+# Set the default query limit
+DEFAULT_SQLLAB_LIMIT = 40000
+
 SECRET_KEY = os.getenv(
     "SUPERSET_SECRET_KEY",
     "AsAd@$#afgt4567!"

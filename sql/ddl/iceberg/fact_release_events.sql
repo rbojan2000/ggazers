@@ -1,3 +1,5 @@
+spark.sql(
+"""
 CREATE TABLE IF NOT EXISTS ggazers.silver.fact_release_events (
     type STRING,
     created_at TIMESTAMP NOT NULL,
@@ -7,3 +9,4 @@ CREATE TABLE IF NOT EXISTS ggazers.silver.fact_release_events (
     tag_name STRING
 ) USING ICEBERG
 PARTITIONED BY (days(created_at))
+""")

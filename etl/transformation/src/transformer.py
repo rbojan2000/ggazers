@@ -76,6 +76,7 @@ class Transformer:
     def transform_repos(self, repos_df: DataFrame) -> DataFrame:
         repos_df = repos_df \
             .dropna(subset=["nameWithOwner"]) \
+            .dropDuplicates() \
             .withColumnRenamed("nameWithOwner", "name_with_owner") \
             .withColumnRenamed("isPrivate", "is_private") \
             .withColumnRenamed("isArchived", "is_archived") \

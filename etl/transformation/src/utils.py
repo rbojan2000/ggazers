@@ -1,4 +1,5 @@
 import calendar
+import os
 from datetime import date, timedelta
 from typing import List, Tuple
 
@@ -26,8 +27,11 @@ def build_paths(start_date: date, end_date: date, dataset: str, parts_per_date: 
     paths = []
     current_date = start_date
     while current_date <= end_date:
-        path = f"{current_date.year}_{current_date.month:02d}_{current_date.day:02d}"
-        for i in range(parts_per_date):
-            paths.append(f"{base_path}/{path}/{path}_{i}.jsonl")
+        date_str = f"{current_date.year}_{current_date.month:02d}_{current_date.day:02d}"
+        dir_path = f"{base_path}/{date_str}"
+        if os.path.exists(dir_path):
+            for fname in os.listdir(dir_path):
+                if fname.endswith(".jsonl"):
+                    paths.append(f"{dir_path}/{fname}")
         current_date += timedelta(days=1)
     return paths

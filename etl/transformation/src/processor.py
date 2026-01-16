@@ -19,6 +19,8 @@ class DataProcessor:
         self.spark_session: SparkSession = (
             SparkSession.builder.appName("transformation")
             .config("spark.sql.session.timeZone", "UTC")
+            .config("spark.driver.memory", "4g")
+            .config("spark.executor.memory", "4g")
             .config("spark.jars.packages", "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.6.0")
             .config(
                 "spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
