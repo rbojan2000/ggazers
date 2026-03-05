@@ -1,6 +1,6 @@
 name: Stream Processing CI
 
-on: [push]
+on: [push, workflow_dispatch]
 
 jobs:
   build:
