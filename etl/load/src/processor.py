@@ -2,14 +2,14 @@ import logging
 import os
 from typing import Dict
 
-from paths import DATA_PATH
 from pyspark.sql import DataFrame, SparkSession
 from src.analyzer import Analyzer
+from src.paths import DATA_PATH
 
 logger = logging.getLogger(__name__)
 
 
-class DataProcessor:
+class Processor:
     def __init__(self) -> None:
         self.spark_session: SparkSession = None
         self.analyzer: Analyzer = None

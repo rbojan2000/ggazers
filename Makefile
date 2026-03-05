@@ -25,7 +25,7 @@ flake:
 		stream-processing/producer/src/ \
 		stream-processing/producer/tests/ \
 		stream-processing/connect/ \
-		dags/ \
+		dags/
 
 format: black isort flake
 
@@ -59,6 +59,8 @@ check-etl-formatting:
 		etl/ingestion/tests/ \
 		etl/transformation/src/ \
 		etl/transformation/tests/ \
+		etl/load/src/ \
+		etl/load/tests/ \
 		dags/ && \
 	isort --check --profile black \
 		etl/ dags/ && \

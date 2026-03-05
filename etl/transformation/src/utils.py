@@ -1,16 +1,8 @@
-import calendar
 import os
 from datetime import date, timedelta
-from typing import List, Tuple
+from typing import List
 
 from src.paths import ACTORS_PATH, GITHUB_EVENTS_PATH, REPOS_PATH
-
-
-def get_first_and_last_day_of_month(year: int, month: int) -> Tuple[date, date]:
-    first_day = date(year, month, 1)
-    last_day_num = calendar.monthrange(year, month)[1]
-    last_day = date(year, month, last_day_num)
-    return first_day, last_day
 
 
 def build_paths(start_date: date, end_date: date, dataset: str, parts_per_date: int = 24) -> List[str]:

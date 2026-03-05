@@ -11,7 +11,7 @@ from src.analyzer import Analyzer
 class AnalyzerTests(unittest.TestCase):
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls.temp_dir = tempfile.mkdtemp()
         cls.warehouse_path = Path(cls.temp_dir) / "warehouse"
         cls.warehouse_path.mkdir()
@@ -31,15 +31,13 @@ class AnalyzerTests(unittest.TestCase):
             )
             .getOrCreate()
         )
-        cls.spark.sparkContext.setLogLevel("ERROR")
 
         cls.spark.sql("CREATE NAMESPACE IF NOT EXISTS ggazers.silver")
 
-        # Create all tables upfront
         cls._create_tables(cls.spark)
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         if cls.spark:
             tables = [
                 "dim_repo",
@@ -70,7 +68,7 @@ class AnalyzerTests(unittest.TestCase):
             shutil.rmtree(cls.temp_dir, ignore_errors=True)
 
     @classmethod
-    def _create_tables(cls, spark):
+    def _create_tables(cls, spark: SparkSession) -> None:
         """Create all Iceberg tables needed for tests."""
         spark.sql(
             """
@@ -288,7 +286,7 @@ class AnalyzerTests(unittest.TestCase):
             """
             )
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.analyzer = Analyzer(self.spark)
         for table in [
             "dim_repo",
@@ -311,10 +309,7 @@ class AnalyzerTests(unittest.TestCase):
             self.spark.sql(f"DELETE FROM ggazers.silver.{table}")
         self._setup_test_data()
 
-    def tearDown(self):
-        pass
-
-    def _setup_test_data(self):
+    def _setup_test_data(self) -> None:
         """Insert test data into Iceberg tables."""
 
         self.spark.sql(
@@ -378,7 +373,7 @@ class AnalyzerTests(unittest.TestCase):
         """
         )
 
-    def test_calculate_repo_level_stats(self):
+    def test_calculate_repo_level_stats(self) -> None:
         """Test the calculate_repo_level_stats method."""
         result_df = self.analyzer.calculate_repo_level_stats("2025-11-01", "2025-11-03")
         results = result_df.collect()
@@ -406,7 +401,7 @@ class AnalyzerTests(unittest.TestCase):
         self.assertEqual(str(row.period_start_date), "2025-11-01")
         self.assertEqual(str(row.period_end_date), "2025-11-03")
 
-    def test_calculate_repo_level_stats_empty_period(self):
+    def test_calculate_repo_level_stats_empty_period(self) -> None:
         result_df = self.analyzer.calculate_repo_level_stats("2025-10-01", "2025-10-02")
         results = result_df.collect()
 
@@ -418,3 +413,91 @@ class AnalyzerTests(unittest.TestCase):
         self.assertEqual(row.best_streak, 0)
         self.assertEqual(row.coding_sessions_count, 0)
         self.assertEqual(row.commiters_count, 0)
+
+    def test_calculate_user_level_stats(self) -> None:
+        self.spark.sql(
+            """
+            INSERT INTO ggazers.silver.fact_create_events VALUES
+            (
+                'CreateEvent', CAST('2025-11-01 09:00:00' AS TIMESTAMP),
+                'user1', 'test-owner/test-repo', 'branch', 'feature/test'
+            ),
+            (
+                'CreateEvent', CAST('2025-11-01 09:30:00' AS TIMESTAMP),
+                'user1', 'test-owner/test-repo', 'tag', 'v1.0.0'
+            )
+        """
+        )
+
+        self.spark.sql(
+            """
+            INSERT INTO ggazers.silver.dim_actor VALUES
+            ('Organization', 'test-owner', NULL, 'Test Owner Org', NULL, NULL, NULL, 'Org Inc', NULL,
+             CAST('2020-01-03 00:00:00' AS TIMESTAMP), 0, 0, 1, 0, NULL, NULL, CURRENT_TIMESTAMP())
+        """
+        )
+
+        result_df = self.analyzer.calculate_user_level_stats("2025-11-01", "2025-11-03")
+        results = result_df.collect()
+
+        rows_by_login = {row.login: row for row in results}
+        user1 = rows_by_login["user1"]
+        user2 = rows_by_login["user2"]
+
+        self.assertEqual(len(results), 2, "Should return two users")
+
+        # user1 has activity in all tracked sources for this period
+        self.assertEqual(user1.branches_count, 1)
+        self.assertEqual(user1.tags_count, 1)
+        self.assertEqual(user1.coding_sessions_count, 1)
+        self.assertEqual(user1.most_sessions_repo, "test-owner/test-repo")
+        self.assertEqual(user1.commits_count, 2)
+        self.assertEqual(user1.opened_pull_requests_count, 1)
+        self.assertEqual(user1.longest_coding_session_seconds, 7200)
+        self.assertGreater(user1.ggazers_score, 0)
+        self.assertIn(user1.activity_label, ["Highly Active", "Active", "Moderate", "Low", "Inactive"])
+
+        # user2 has commits but no sessions/branches/tags in fixture data
+        self.assertEqual(user2.branches_count, 0)
+        self.assertEqual(user2.tags_count, 0)
+        self.assertEqual(user2.coding_sessions_count, 0)
+        self.assertEqual(user2.commits_count, 1)
+
+    def test_calculate_org_level_stats(self) -> None:
+        """Test the calculate_org_level_stats method."""
+        self.spark.sql(
+            """
+            INSERT INTO ggazers.silver.dim_actor VALUES
+            ('Organization', 'test-owner', NULL, 'Test Owner Org', NULL, NULL, NULL, 'Org Inc', NULL,
+             CAST('2020-01-03 00:00:00' AS TIMESTAMP), 0, 0, 1, 0, NULL, NULL, CURRENT_TIMESTAMP())
+        """
+        )
+
+        self.spark.sql(
+            """
+            INSERT INTO ggazers.silver.fact_watch_events VALUES
+            (
+                'WatchEvent', CAST('2025-11-01 13:00:00' AS TIMESTAMP),
+                'user1', 'test-owner/test-repo'
+            ),
+            (
+                'WatchEvent', CAST('2025-11-02 13:00:00' AS TIMESTAMP),
+                'user2', 'test-owner/test-repo'
+            )
+        """
+        )
+
+        result_df = self.analyzer.calculate_org_level_stats("2025-11-01", "2025-11-03")
+        results = result_df.collect()
+
+        row = results[0]
+
+        self.assertEqual(len(results), 1, "Should return one organization")
+        self.assertEqual(row.login, "test-owner")
+        self.assertEqual(row.most_active_repo, "test-owner/test-repo")
+        self.assertGreater(row.most_active_repo_activity_count, 0)
+        self.assertEqual(row.commits_count, 3)
+        self.assertEqual(row.new_stargazers_count, 2)
+        self.assertGreater(row.ggazers_score, 0)
+        self.assertIn(row.activity_label, ["Highly Active", "Active", "Moderate", "Low", "Inactive"])
+        self.assertGreater(row.ggazer_rank, 0)

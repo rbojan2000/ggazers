@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
-from git_clients.github_client import GithubClient
+from src.git_clients.github_client import GithubClient
 
 
 def make_response(status=http.HTTPStatus.OK, json_data=None, text=""):

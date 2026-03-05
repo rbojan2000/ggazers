@@ -1,31 +1,15 @@
-import unittest
 from datetime import datetime
 
-from pyspark.sql import SparkSession
+import pytest
 from pyspark.sql.functions import lit, when
 from src.schema import ACTORS_SCHEMA, GITHUB_EVENTS_SCHEMA, REPOS_SCHEMA
 from src.transformer import Transformer
 
 
-class TransformerTests(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.spark = (
-            SparkSession.builder.master("local[*]")
-            .appName("TransformerTest")
-            .config("spark.ui.enabled", "false")
-            .config("spark.ui.showConsoleProgress", "false")
-            .getOrCreate()
-        )
-        cls.spark.sparkContext.setLogLevel("ERROR")
-
-    @classmethod
-    def tearDownClass(cls) -> None:
-        if cls.spark:
-            cls.spark.stop()
-
-    def setUp(self) -> None:
+class TestTransformer:
+    @pytest.fixture(autouse=True)
+    def setup(self, spark_session):
+        self.spark = spark_session
         self.transformer = Transformer()
 
     def test_flatten_repository_topics_multiple_topics(self) -> None:
@@ -49,15 +33,12 @@ class TransformerTests(unittest.TestCase):
                 "ingested_at": "2025-11-01T00:00:00Z",
             }
         ]
-
         df = self.spark.createDataFrame(data, REPOS_SCHEMA)
         df = df.withColumnRenamed("nameWithOwner", "name_with_owner")
         df_transformed = self.transformer._flatten_repository_topics(df)
         result = df_transformed.collect()[0]
-
-        self.assertEqual(result.name_with_owner, "octocat/hello-world")
-        # Topics are collected as a set, so order may vary
-        self.assertIn(result.repository_topics, ["python,spark", "spark,python"])
+        assert result.name_with_owner == "octocat/hello-world"
+        assert result.repository_topics in ["python,spark", "spark,python"]
 
     def test_flatten_repository_topics_no_topics(self) -> None:
         """Test flattening repository topics with no topics"""
@@ -84,7 +65,7 @@ class TransformerTests(unittest.TestCase):
         df = df.withColumnRenamed("nameWithOwner", "name_with_owner")
         df_transformed = self.transformer._flatten_repository_topics(df)
         result = df_transformed.select("repository_topics").collect()[0].repository_topics
-        self.assertIsNone(result)
+        assert result is None
 
     def test_flatten_repository_topics_single_topic(self) -> None:
         """Test flattening repository topics with single topic"""
@@ -111,7 +92,7 @@ class TransformerTests(unittest.TestCase):
         df = df.withColumnRenamed("nameWithOwner", "name_with_owner")
         df_transformed = self.transformer._flatten_repository_topics(df)
         result = df_transformed.select("repository_topics").collect()[0].repository_topics
-        self.assertEqual(result, "javascript")
+        assert result == "javascript"
 
     def test_transform_actors_deduplication(self) -> None:
         """Test that actors are deduplicated by most recent ingested_at"""
@@ -163,9 +144,9 @@ class TransformerTests(unittest.TestCase):
         result = df_transformed.collect()
 
         # Should only have 1 record (most recent)
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0].avatar_url, "https://new.url")
-        self.assertEqual(result[0].followers_count, 150)
+        assert len(result) == 1
+        assert result[0].avatar_url == "https://new.url"
+        assert result[0].followers_count == 150
 
     def test_transform_actors_column_mapping(self) -> None:
         """Test that actor columns are properly renamed and transformed"""
@@ -196,19 +177,19 @@ class TransformerTests(unittest.TestCase):
         df_transformed = self.transformer.transform_actors(df)
         result = df_transformed.collect()[0]
 
-        self.assertEqual(result.type, "User")
-        self.assertEqual(result.avatar_url, "https://avatar.url")
-        self.assertEqual(result.website_url, "https://website.url")
-        self.assertEqual(result.twitter_username, "octocat")
-        self.assertEqual(result.followers_count, 100)
-        self.assertEqual(result.following_count, 50)
-        self.assertEqual(result.repositories_count, 25)
-        self.assertEqual(result.gists_count, 10)
-        self.assertEqual(result.status_message, "Coding")
-        self.assertNotIn("id", df_transformed.columns)
-        self.assertNotIn("followers", df_transformed.columns)
-        self.assertNotIn("following", df_transformed.columns)
-        self.assertNotIn("ingested_at", df_transformed.columns)
+        assert result.type == "User"
+        assert result.avatar_url == "https://avatar.url"
+        assert result.website_url == "https://website.url"
+        assert result.twitter_username == "octocat"
+        assert result.followers_count == 100
+        assert result.following_count == 50
+        assert result.repositories_count == 25
+        assert result.gists_count == 10
+        assert result.status_message == "Coding"
+        assert "id" not in df_transformed.columns
+        assert "followers" not in df_transformed.columns
+        assert "following" not in df_transformed.columns
+        assert "ingested_at" not in df_transformed.columns
 
     def test_transform_actors_with_nulls(self) -> None:
         """Test transforming actors with null values"""
@@ -239,11 +220,11 @@ class TransformerTests(unittest.TestCase):
         df_transformed = self.transformer.transform_actors(df)
         result = df_transformed.collect()[0]
 
-        self.assertEqual(result.login, "octocat")
-        self.assertIsNone(result.avatar_url)
-        self.assertIsNone(result.website_url)
-        self.assertIsNone(result.twitter_username)
-        self.assertIsNone(result.status_message)
+        assert result.login == "octocat"
+        assert result.avatar_url is None
+        assert result.website_url is None
+        assert result.twitter_username is None
+        assert result.status_message is None
 
     def test_transform_repos_column_mapping(self) -> None:
         """Test that repo columns are properly renamed and transformed"""
@@ -276,22 +257,22 @@ class TransformerTests(unittest.TestCase):
         df_transformed = self.transformer.transform_repos(df)
         result = df_transformed.collect()[0]
 
-        self.assertEqual(result.name_with_owner, "octocat/hello-world")
-        self.assertEqual(result.owner, "octocat")
-        self.assertEqual(result.name, "hello-world")
-        self.assertEqual(result.is_private, False)
-        self.assertEqual(result.is_archived, False)
-        self.assertEqual(result.is_fork, False)
-        self.assertEqual(result.disk_usage, 1024)
-        self.assertEqual(result.stargazers_count, 100)
-        self.assertEqual(result.forks_count, 10)
-        self.assertEqual(result.watchers_count, 50)
-        self.assertEqual(result.issues_count, 5)
-        self.assertEqual(result.primary_language, "Python")
-        self.assertIn(result.repository_topics, ["python,testing", "testing,python"])
-        self.assertNotIn("ingested_at", df_transformed.columns)
-        self.assertNotIn("watchers", df_transformed.columns)
-        self.assertNotIn("issues", df_transformed.columns)
+        assert result.name_with_owner == "octocat/hello-world"
+        assert result.owner == "octocat"
+        assert result.name == "hello-world"
+        assert result.is_private is False
+        assert result.is_archived is False
+        assert result.is_fork is False
+        assert result.disk_usage == 1024
+        assert result.stargazers_count == 100
+        assert result.forks_count == 10
+        assert result.watchers_count == 50
+        assert result.issues_count == 5
+        assert result.primary_language == "Python"
+        assert result.repository_topics in ["python,testing", "testing,python"]
+        assert "ingested_at" not in df_transformed.columns
+        assert "watchers" not in df_transformed.columns
+        assert "issues" not in df_transformed.columns
 
     def test_transform_repos_deduplication(self) -> None:
         """Test that repos are deduplicated by most recent ingested_at"""
@@ -336,9 +317,9 @@ class TransformerTests(unittest.TestCase):
         df_transformed = self.transformer.transform_repos(df)
         result = df_transformed.collect()
 
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0].stargazers_count, 200)
-        self.assertEqual(result[0].disk_usage, 2048)
+        assert len(result) == 1
+        assert result[0].stargazers_count == 200
+        assert result[0].disk_usage == 2048
 
     def test_transform_repos_split_name_with_owner(self) -> None:
         """Test that name_with_owner is correctly split into owner and name"""
@@ -366,9 +347,9 @@ class TransformerTests(unittest.TestCase):
         df_transformed = self.transformer.transform_repos(df)
         result = df_transformed.collect()[0]
 
-        self.assertEqual(result.name_with_owner, "microsoft/vscode")
-        self.assertEqual(result.owner, "microsoft")
-        self.assertEqual(result.name, "vscode")
+        assert result.name_with_owner == "microsoft/vscode"
+        assert result.owner == "microsoft"
+        assert result.name == "vscode"
 
     def test_transform_events_column_extraction(self):
         """Test that events are properly transformed and columns extracted"""
@@ -401,13 +382,13 @@ class TransformerTests(unittest.TestCase):
         df_transformed = self.transformer.transform_events(df)
         result = df_transformed.collect()[0]
 
-        self.assertEqual(result.actor_login, "octocat")
-        self.assertEqual(result.repo_name, "octocat/Hello-World")
-        self.assertEqual(result.created_at, datetime(2025, 11, 1, 12, 0, 0))
-        self.assertNotIn("id", df_transformed.columns)
-        self.assertNotIn("actor", df_transformed.columns)
-        self.assertNotIn("repo", df_transformed.columns)
-        self.assertNotIn("ingested_at", df_transformed.columns)
+        assert result.actor_login == "octocat"
+        assert result.repo_name == "octocat/Hello-World"
+        assert result.created_at == datetime(2025, 11, 1, 12, 0, 0)
+        assert "id" not in df_transformed.columns
+        assert "actor" not in df_transformed.columns
+        assert "repo" not in df_transformed.columns
+        assert "ingested_at" not in df_transformed.columns
 
     def test_transform_events_null_filtering(self) -> None:
         """Test that events with null required fields are filtered out"""
@@ -467,8 +448,8 @@ class TransformerTests(unittest.TestCase):
         result = df_transformed.collect()
 
         # Only 1 event should remain (the valid one)
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0].type, "PushEvent")
+        assert len(result) == 1
+        assert result[0].type == "PushEvent"
 
     def test_transform_sessions_single_session(self) -> None:
         """Test session transformation with events forming a single session"""
@@ -494,10 +475,10 @@ class TransformerTests(unittest.TestCase):
         df_transformed = self.transformer.transform_sessions(df)
         result = df_transformed.collect()
 
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0].actor_login, "user1")
-        self.assertEqual(result[0].events_count, 3)
-        self.assertEqual(result[0].session_duration_seconds, 3 * 60 * 60)  # 3 hours
+        assert len(result) == 1
+        assert result[0].actor_login == "user1"
+        assert result[0].events_count == 3
+        assert result[0].session_duration_seconds == 3 * 60 * 60  # 3 hours
 
     def test_transform_sessions_multiple_sessions(self) -> None:
         """Test session transformation with events forming multiple sessions"""
@@ -530,7 +511,7 @@ class TransformerTests(unittest.TestCase):
         df_transformed = self.transformer.transform_sessions(df)
         result = df_transformed.collect()
 
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
 
     def test_transform_sessions_multiple_users(self) -> None:
         """Test session transformation with multiple users"""
@@ -563,8 +544,8 @@ class TransformerTests(unittest.TestCase):
         df_transformed = self.transformer.transform_sessions(df)
         result = df_transformed.collect()
 
-        self.assertEqual(len(result), 2)
-        self.assertSetEqual(set([r.actor_login for r in result]), {"user1", "user2"})
+        assert len(result) == 2
+        assert set([r.actor_login for r in result]) == {"user1", "user2"}
 
     def test_transform_sessions_exact_boundary(self) -> None:
         """Test session boundary at exactly 8 hours"""
@@ -585,7 +566,7 @@ class TransformerTests(unittest.TestCase):
         df_transformed = self.transformer.transform_sessions(df)
         result = df_transformed.collect()
 
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0].events_count, 2)
-        self.assertEqual(result[0].session_duration_seconds, 8 * 60 * 60)
-        self.assertEqual(result[0].repos, "repo2,repo1")
+        assert len(result) == 1
+        assert result[0].events_count == 2
+        assert result[0].session_duration_seconds == 8 * 60 * 60
+        assert result[0].repos == "repo2,repo1"

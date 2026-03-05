@@ -2,9 +2,9 @@ import logging
 import time
 
 from constants import SLEEP_AFTER_POLL
-from producer.kafka_producer import ActorProducer, GithubEventProducer, RepoProducer
 from src.github_client import GithubClient
 from src.mapper.mapper import ActorMapper, GitHubEventMapper, RepoMapper
+from src.producer.kafka_producer import ActorProducer, GithubEventProducer, RepoProducer
 from utils import extract_repo_and_actor_names
 
 logger = logging.getLogger(__name__)

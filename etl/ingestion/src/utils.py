@@ -1,15 +1,7 @@
-import calendar
 import gzip
 import json
-from datetime import date, datetime
+from datetime import datetime
 from typing import Any, Dict, Generator, List, Tuple
-
-
-def get_first_and_last_day_of_month(year: int, month: int) -> Tuple[date, date]:
-    first_day = date(year, month, 1)
-    last_day_num = calendar.monthrange(year, month)[1]
-    last_day = date(year, month, last_day_num)
-    return first_day, last_day
 
 
 def decompress_data(compressed_data: bytes) -> List[Dict[str, Any]]:

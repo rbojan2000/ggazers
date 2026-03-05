@@ -1,8 +1,8 @@
 import logging
 
 import click
-from connector.connector import ActorKpiConnector, Connector, RepoKpiConnector
-from constants import REPO_KPI_TABLE, REPO_KPI_TOPIC, USER_KPI_TABLE, USER_KPI_TOPIC
+from src.connector.connector import ActorKpiConnector, Connector, RepoKpiConnector
+from src.constants import REPO_KPI_TABLE, REPO_KPI_TOPIC, USER_KPI_TABLE, USER_KPI_TOPIC
 
 logger = logging.getLogger(__name__)
 

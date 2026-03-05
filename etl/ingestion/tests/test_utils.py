@@ -1,6 +1,6 @@
 import gzip
 import json
-from datetime import date, datetime
+from datetime import datetime
 
 from src.utils import (
     chunk_list,
@@ -8,20 +8,7 @@ from src.utils import (
     extract_owner_from_repo_full_name,
     extract_repos_and_actors,
     generate_file_name,
-    get_first_and_last_day_of_month,
 )
-
-
-def test_january_regular_year():
-    first, last = get_first_and_last_day_of_month(2023, 1)
-    assert first == date(2023, 1, 1)
-    assert last == date(2023, 1, 31)
-
-
-def test_february_regular_year():
-    first, last = get_first_and_last_day_of_month(2023, 2)
-    assert first == date(2023, 2, 1)
-    assert last == date(2023, 2, 28)
 
 
 def test_decompress_valid_data():

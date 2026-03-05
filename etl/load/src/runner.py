@@ -1,11 +1,11 @@
 import logging
 
 import click
-from src.processor import DataProcessor
+from src.processor import Processor
 
 logger = logging.getLogger(__name__)
 
-processor = DataProcessor()
+processor = Processor()
 
 
 @click.command()

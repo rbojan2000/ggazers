@@ -11,7 +11,7 @@ from src.utils import build_paths
 logger = logging.getLogger(__name__)
 
 
-class DataProcessor:
+class Processor:
     def __init__(self):
         self.transformer = Transformer()
 

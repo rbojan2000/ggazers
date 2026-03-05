@@ -5,7 +5,7 @@ from confluent_kafka import DeserializingConsumer
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroDeserializer
 from confluent_kafka.serialization import StringDeserializer
-from constants import (
+from src.constants import (
     BROKER_URL,
     DB_HOST,
     DB_NAME,
@@ -15,7 +15,7 @@ from constants import (
     GROUP_ID,
     SCHEMA_REGISTRY_URL,
 )
-from db_client import DBClient
+from src.db_client import DBClient
 
 logger = logging.getLogger(__name__)
 

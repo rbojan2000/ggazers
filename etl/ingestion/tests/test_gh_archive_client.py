@@ -3,7 +3,7 @@ from datetime import date
 from unittest.mock import MagicMock, patch
 
 import requests
-from git_clients.gh_archive_client import GHArchiveClient
+from src.git_clients.gh_archive_client import GHArchiveClient
 
 
 def make_response(status_code=http.HTTPStatus.OK, content=b"DATA"):

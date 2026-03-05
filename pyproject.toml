@@ -13,7 +13,7 @@ flake8 = "^7.3.0"
 pytest = "^9.0.1"
 pyspark = "3.5.2"
 dataclasses-avroschema = "^0.66.2"
-click = "^8.3.1"
+requests = "^2.32.5"
 
 [tool.isort]
 profile = "black"
