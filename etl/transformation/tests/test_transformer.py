@@ -10,7 +10,7 @@ class TestTransformer:
     @pytest.fixture(autouse=True)
     def setup(self, spark_session):
         self.spark = spark_session
-        self.transformer = Transformer()
+        self.transformer = Transformer(session_gap_seconds=8 * 60 * 60)
 
     def test_flatten_repository_topics_multiple_topics(self) -> None:
         """Test flattening repository topics with multiple topics"""

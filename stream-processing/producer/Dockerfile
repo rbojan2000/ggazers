@@ -5,8 +5,9 @@ RUN apt-get update && apt-get install -y netcat-openbsd && rm -rf /var/lib/apt/l
 WORKDIR /app
 
 COPY requirements.txt ./
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY src/ src/
+COPY . ./
 
 CMD ["python3", "-m", "src.runner"]

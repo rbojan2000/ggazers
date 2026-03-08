@@ -26,8 +26,8 @@ from pyspark.sql.window import Window
 
 # fmt: off
 class Transformer:
-    def __init__(self):
-        self.session_gap_seconds = 8 * 60 * 60  # 8 hours
+    def __init__(self, session_gap_seconds: int):
+        self.session_gap_seconds = session_gap_seconds
 
     def _flatten_repository_topics(self, df: DataFrame) -> DataFrame:
         df_topics = df \

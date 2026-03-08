@@ -8,13 +8,15 @@ from unittest.mock import patch
 
 import pytest
 from src.processor import Processor
+from src.transformer import Transformer
 
 
 class TestProcessor:
     @pytest.fixture(autouse=True)
     def setup(self, spark_session, silver_tables: Any) -> Generator[None, Any, None]:
         self.spark = spark_session
-        self.processor = Processor()
+        transformer = Transformer(session_gap_seconds=8 * 60 * 60)
+        self.processor = Processor(transformer)
         self.processor.spark_session = self.spark
         self.test_data_dir = Path(tempfile.mkdtemp())
         self.actors_dir = self.test_data_dir / "actors"

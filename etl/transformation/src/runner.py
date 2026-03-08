@@ -4,10 +4,13 @@ from datetime import date, datetime, timezone
 
 import click
 from src.processor import Processor
+from src.transformer import Transformer
 
 logger = logging.getLogger(__name__)
 
-processor = Processor()
+SESSION_GAP_SECONDS = 8 * 60 * 60  # 8 hours
+transformer = Transformer(SESSION_GAP_SECONDS)
+processor = Processor(transformer)
 
 
 @click.command()

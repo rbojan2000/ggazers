@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 
 
 class Processor:
-    def __init__(self):
-        self.transformer = Transformer()
+    def __init__(self, transformer: Transformer) -> None:
+        self.transformer = transformer
 
     def init_spark_session(self) -> None:
         self.spark_session: SparkSession = (
